@@ -2,6 +2,7 @@ package io.funkode.arangodb
 package protocol
 
 import scala.collection.immutable.Map
+
 import io.lemonlabs.uri.UrlPath
 import zio.prelude.Covariant
 
