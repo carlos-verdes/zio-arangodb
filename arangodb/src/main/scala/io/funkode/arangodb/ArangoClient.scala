@@ -17,8 +17,19 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
   def commandBody[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[O] =
     command(message).map(_.body)
 
-//def database(name: DatabaseName): ArangoDatabase[F]
+  def database(name: DatabaseName): ArangoDatabase[Encoder, Decoder]
 
-//def system: ArangoDatabase[F]
+  def system: ArangoDatabase[Encoder, Decoder]
 
-//def db: ArangoDatabase[F]
+  def db: ArangoDatabase[Encoder, Decoder]
+
+  extension (serviceWithClient: AIO[ArangoClient[Encoder, Decoder]])
+    def withClient[O](f: ArangoClient[Encoder, Decoder] => O) =
+      serviceWithClient.map(f)
+
+    def database(name: DatabaseName): AIO[ArangoDatabase[Encoder, Decoder]] =
+      withClient(_.database(name))
+
+    def system: AIO[ArangoDatabase[Encoder, Decoder]] = withClient(_.system)
+
+    def db: AIO[ArangoDatabase[Encoder, Decoder]] = withClient(_.db)
