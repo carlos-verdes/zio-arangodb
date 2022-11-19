@@ -53,6 +53,17 @@ lazy val arangodb =
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
     .dependsOn(velocypack)
 
+lazy val arangodbhttp =
+  project
+    .in(file("arangodb-http"))
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings)
+    .settings(Seq(
+      name := "zio-arangodb-http",
+      libraryDependencies ++= commonLibs ++ zioLibs ++ testLibs,
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
+    .dependsOn(arangodb)
+
 addCommandAlias("ll", "projects")
 addCommandAlias("checkFmtAll", ";scalafmtSbtCheck;scalafmtCheckAll")
 addCommandAlias("testAll", ";compile;test;stryker")

@@ -1,5 +1,7 @@
 package io.funkode.arangodb
 
+import java.util.Base64.Decoder
+
 import zio.*
 
 import model.*
@@ -17,9 +19,11 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
   def commandBody[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[O] =
     command(message).map(_.body)
 
-  def database(name: DatabaseName): ArangoDatabase[Encoder, Decoder]
+  def database(name: DatabaseName): ArangoDatabase[Encoder, Decoder] =
+    new ArangoDatabase[Encoder, Decoder](name)(using this)
 
-  def system: ArangoDatabase[Encoder, Decoder]
+  def system: ArangoDatabase[Encoder, Decoder] =
+    this.database(DatabaseName.system)
 
   def db: ArangoDatabase[Encoder, Decoder]
 
@@ -33,3 +37,22 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
     def system: AIO[ArangoDatabase[Encoder, Decoder]] = withClient(_.system)
 
     def db: AIO[ArangoDatabase[Encoder, Decoder]] = withClient(_.db)
+
+object ArangoClient:
+
+  def withClient[Encoder[_]: TagK, Decoder[_]: TagK, O](
+      f: ArangoClient[Encoder, Decoder] => O
+  ): WithClient[Encoder, Decoder, O] =
+    ZIO.service[ArangoClient[Encoder, Decoder]].map(f)
+
+  def database[Encoder[_]: TagK, Decoder[_]: TagK](
+      name: DatabaseName
+  ): WithClient[Encoder, Decoder, ArangoDatabase[Encoder, Decoder]] =
+    withClient(_.database(name))
+
+  def system[Encoder[_]: TagK, Decoder[_]: TagK]
+      : WithClient[Encoder, Decoder, ArangoDatabase[Encoder, Decoder]] =
+    withClient(_.system)
+
+  def db[Encoder[_]: TagK, Decoder[_]: TagK]: WithClient[Encoder, Decoder, ArangoDatabase[Encoder, Decoder]] =
+    withClient(_.db)

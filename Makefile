@@ -38,7 +38,7 @@ endif
 
 .PHONY: run
 run:
-	sbt testcontainers/run
+	sbt arangodbhttp/run
 
 .PHONY: dependencyTree
 dependencyTree:

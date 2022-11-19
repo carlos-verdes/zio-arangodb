@@ -22,8 +22,19 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
   def create(users: List[DatabaseCreate.User] = List.empty)(using
       Encoder[DatabaseCreate],
       Decoder[ArangoResult[Boolean]]
-  ): AIO[Boolean] =
-    POST(DatabaseName.system, ApiDatabase).withBody(DatabaseCreate(name, users)).executeIgnoreResult
+  ): AIO[ArangoDatabase[Encoder, Decoder]] =
+    POST(DatabaseName.system, ApiDatabase)
+      .withBody(DatabaseCreate(name, users))
+      .executeIgnoreResult
+      .map(_ => this)
+
+  def createIfNotExist(users: List[DatabaseCreate.User] = List.empty)(using
+      Encoder[DatabaseCreate],
+      Decoder[ArangoResult[Boolean]]
+  ): AIO[ArangoDatabase[Encoder, Decoder]] =
+    create(users).catchSome { case ArangoError(409, true, _, _) =>
+      ZIO.succeed(this)
+    }
 
   def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo] =
     GET(name, ApiDatabase.addPart("current")).executeIgnoreResult
@@ -32,11 +43,9 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
     DELETE(DatabaseName.system, ApiDatabase.addPart(name.unwrap)).executeIgnoreResult
 
   def collections(excludeSystem: Boolean = false)(using
-      Decoder[ArangoResult[Result[List[CollectionInfo]]]]
+      Decoder[ArangoResult[List[CollectionInfo]]]
   ): AIO[List[CollectionInfo]] =
-    GET(name, ApiCollectionPath, Map("excludeSystem" -> excludeSystem.toString))
-      .executeIgnoreResult[Result[List[CollectionInfo]], Encoder, Decoder]
-      .map(_.result)
+    GET(name, ApiCollectionPath, Map("excludeSystem" -> excludeSystem.toString)).executeIgnoreResult
 
   /*
   def collection(name: CollectionName): ArangoCollection[Encoder, Decoder]
@@ -62,8 +71,14 @@ object ArangoDatabase:
     def create(users: List[DatabaseCreate.User] = List.empty)(using
         Enc[DatabaseCreate],
         Dec[ArangoResult[Boolean]]
-    ): ZIO[R, ArangoError, Boolean] =
+    ): ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]] =
       dbService.flatMap(_.create(users))
+
+    def createIfNotExist(users: List[DatabaseCreate.User] = List.empty)(using
+        Enc[DatabaseCreate],
+        Dec[ArangoResult[Boolean]]
+    ): ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]] =
+      dbService.flatMap(_.createIfNotExist(users))
 
     def info(using Dec[ArangoResult[DatabaseInfo]]): ZIO[R, ArangoError, DatabaseInfo] =
       dbService.flatMap(_.info)
@@ -72,6 +87,6 @@ object ArangoDatabase:
       dbService.flatMap(_.drop)
 
     def collections(excludeSystem: Boolean = false)(using
-        Dec[ArangoResult[Result[List[CollectionInfo]]]]
+        Dec[ArangoResult[List[CollectionInfo]]]
     ): ZIO[R, ArangoError, List[CollectionInfo]] =
       dbService.flatMap(_.collections(excludeSystem))
