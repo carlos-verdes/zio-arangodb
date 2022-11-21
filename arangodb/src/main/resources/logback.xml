@@ -1,0 +1,15 @@
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <useJansi>false</useJansi>
+    <encoder>
+      <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss.SSSzzz"} %-5level %logger{36} %X{sourceThread} - %X{traceID:-0} %X{spanID:-0} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+
+  <logger name="org.apache.zookeeper" level="OFF" additivity="false" />
+
+  <root level="info">
+    <appender-ref ref="STDOUT" />
+  </root>
+</configuration>

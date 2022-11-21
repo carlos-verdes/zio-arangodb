@@ -3,6 +3,9 @@ import Libraries._
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+Test / fork := true
+IntegrationTest / fork := true
+
 inThisBuild(
   List(
     organization := "io.funkode",
@@ -42,7 +45,7 @@ lazy val velocypack =
       libraryDependencies ++= commonLibs ++ Seq(scodecCore) ++ zioLibs ++ testLibs,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
 
-lazy val arangodb =
+lazy val arango =
   project
     .in(file("arangodb"))
     .configs(IntegrationTest)
@@ -53,7 +56,18 @@ lazy val arangodb =
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
     .dependsOn(velocypack)
 
-lazy val arangodbhttp =
+lazy val docker =
+  project
+    .in(file("arangodb-docker"))
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings)
+    .settings(Seq(
+      name := "arangodb-docker",
+      libraryDependencies ++= Seq(testContainers, logBack) ++ zioLibs ++ testLibs),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
+    .dependsOn(arango)
+
+lazy val http =
   project
     .in(file("arangodb-http"))
     .configs(IntegrationTest)
@@ -61,11 +75,14 @@ lazy val arangodbhttp =
     .settings(Seq(
       name := "zio-arangodb-http",
       libraryDependencies ++= commonLibs ++ zioLibs ++ testLibs,
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
-    .dependsOn(arangodb)
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")),
+      coverageExcludedPackages := "<empty>;.*Main.*;zio\\.json\\.*")
+    .dependsOn(arango, docker)
+
+ThisBuild / coverageExcludedPackages := "<empty>;.*Main.*;zio\\.json\\.*"
 
 addCommandAlias("ll", "projects")
 addCommandAlias("checkFmtAll", ";scalafmtSbtCheck;scalafmtCheckAll")
 addCommandAlias("testAll", ";compile;test;stryker")
 //addCommandAlias("sanity", ";compile;scalafmtAll;test;stryker")
-addCommandAlias("sanity", ";clean;compile;scalafixAll;scalafmtAll;coverage;test;coverageReport")
+addCommandAlias("sanity", ";clean;coverage;compile;scalafixAll;scalafmtAll;test;it:test;coverageAggregate;coverageOff")
