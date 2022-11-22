@@ -48,6 +48,50 @@ object Main extends ZIOAppDefault:
   )
 ```
 
+## Testing (testcontainers / Docker)
+
+To do IT testing you can use `ArangoClientJson.testcontainers` instead of `live`.
+It will add an `ArangoContainer` layer running on a random port and a client already configured against the instance
+
+Example from it tests (check code for more examples):
+```scala
+
+import io.funkode.arangodb.*
+import io.funkode.arangodb.http.*
+import io.funkode.arangodb.model.*
+import io.funkode.velocypack.VPack
+import zio.*
+import zio.http.Client
+import zio.json.*
+import zio.test.*
+
+
+object ArangoDatabaseIT extends ZIOSpecDefault:
+
+import JsonCodecs.given
+import VPack.*
+import docker.ArangoContainer
+
+override def spec: Spec[TestEnvironment, Any] =
+  suite("ArangoDB client should")(
+    test("Create and drop a database") {
+      for
+        container <- ZIO.service[ArangoContainer]
+        _ <- Console.printLine(s"ArangoDB container running on port ${container.container.getFirstMappedPort.nn}")
+        databaseApi <- ArangoClientJson.database("pets").create()
+        dataInfo <- databaseApi.info
+        deleteResult <- databaseApi.drop
+      yield assertTrue(dataInfo.name == testDatabase.name) &&
+        assertTrue(!dataInfo.isSystem) &&
+        assertTrue(deleteResult)
+    }).provideShared(
+    Scope.default,
+    ArangoConfiguration.default,
+    Client.default,
+    ArangoClientJson.testContainers
+  )
+```
+
 ## Scripts on this repository
 
 Start ArangoDB with docker:

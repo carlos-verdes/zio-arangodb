@@ -27,6 +27,8 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
 
   def db: ArangoDatabase[Encoder, Decoder]
 
+  def withConfiguration(config: ArangoConfiguration): ArangoClient[Encoder, Decoder]
+
   extension (serviceWithClient: AIO[ArangoClient[Encoder, Decoder]])
     def withClient[O](f: ArangoClient[Encoder, Decoder] => O) =
       serviceWithClient.map(f)

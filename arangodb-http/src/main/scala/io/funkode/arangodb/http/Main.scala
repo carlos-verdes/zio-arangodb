@@ -3,13 +3,15 @@ package http
 
 import zio.*
 import zio.Console.*
+import zio.config.ReadError
 import zio.http.Client
 import zio.http.Middleware.*
 import zio.json.*
 
 object Main extends ZIOAppDefault:
 
-  import model.*
+  import io.funkode.arangodb.model.*
+  import io.funkode.arangodb.http.*
   import JsonCodecs.given
 
   case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle) derives JsonCodec
@@ -35,9 +37,10 @@ object Main extends ZIOAppDefault:
       _ <- readLine
     yield ()
 
-  def run = app.provide(
-    ArangoConfiguration.default,
-    ArangoClientJson.live,
-    Client.default,
-    Scope.default
-  )
+  def run =
+    app.provide(
+      Scope.default,
+      Client.default,
+      ArangoConfiguration.default,
+      ArangoClientJson.live
+    )

@@ -13,8 +13,13 @@ import zio.http.model.Status.*
 import zio.json.*
 import zio.prelude.*
 
+import io.funkode.arangodb.docker.*
 import io.funkode.arangodb.model.*
 import io.funkode.arangodb.protocol.*
+
+type ArangoClientJson = ArangoClient[JsonEncoder, JsonDecoder]
+type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
+type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
 
 trait HttpEncoder[Encoder[_]]:
   def encode[R](r: R)(using Encoder[R]): Body
@@ -71,6 +76,9 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
   def login(username: String, password: String): AIO[Token] =
     for token <- getBody[Token](ArangoMessage.login(username, password))
     yield token
+
+  def withConfiguration(newConfig: ArangoConfiguration): ArangoClient[Encoder, Decoder] =
+    new ArangoClientHttp[Encoder, Decoder](newConfig, httpClient, token)
 
   private def parseResponseBody[O: Decoder](response: Response)(using Decoder[ArangoError]): AIO[O] =
     for body <-
@@ -208,10 +216,6 @@ object ArangoClientJson:
   import zio.json.*
   import JsonCodecs.given
 
-  type ArangoClientJson = ArangoClient[JsonEncoder, JsonDecoder]
-  type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
-  type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
-
   def withClient[O](
       f: ArangoClient[JsonEncoder, JsonDecoder] => O
   ): WithJsonClient[O] =
@@ -269,3 +273,17 @@ object ArangoClientJson:
       token <- arangoClientJson(config, httpClient).login(config.username, config.password)
       arangoClient = arangoClientJson(config, httpClient, Some(token))
     yield arangoClient)
+
+  val testContainers: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientJson & ArangoContainer] =
+    ZLayer.scopedEnvironment(
+      for
+        aconfig <- ZIO.service[ArangoConfiguration]
+        container <- ArangoContainer.makeScopedContainer(aconfig)
+        newConfig = aconfig.copy(
+          port = container.container.getFirstMappedPort.nn,
+          host = container.container.getHost.nn
+        )
+        httpClient <- ZIO.service[Client]
+        token <- arangoClientJson(newConfig, httpClient).login(newConfig.username, newConfig.password)
+      yield ZEnvironment(arangoClientJson(newConfig, httpClient, Some(token)), container)
+    )
