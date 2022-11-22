@@ -91,6 +91,38 @@ override def spec: Spec[TestEnvironment, Any] =
     ArangoClientJson.testContainers
   )
 ```
+## ServerInfo API [link](./arangodb/src/main/scala/io/funkode/arangodb/ArangoServer.scala)
+High level methods:
+- `def databases: List[DatabaseName]` - list of server databases
+- `def version(details: Boolean = false): ServerVersion` - server version, license type, etc
+
+Example of usage:
+```scala
+for
+  databases <- ArangoClientJson.serverInfo().databases
+yield databases
+```
+## Database API [link](./arangodb/src/main/scala/io/funkode/arangodb/ArangoDatabase.scala)
+
+High level methods:
+- `def name: DatabaseName` - name of current database
+- `def info: DatabaseInfo` - get database info
+- `def create(users: List[DatabaseCreate.User]): ArangoDatabase` - create this database, will fail if already exist
+- `def createIfNotExist(users: List[DatabaseCreate.User]): ArangoDatabase`
+- `def drop: Boolean` - drop current database
+- `def graphs: List[CollectionInfo]` - list of database collections
+- `def graphs: List[GraphInfo]` - list of database graphs
+
+Example of usage:
+```scala
+val testDb = DatabaseName("test")
+
+for
+  dbApi <- ArangoClientJson.database(testDb).createIfNotExist()
+  databaseInfo <- dbApi.info
+  collections <- dbApi.collections()
+yield (databaseInfo, collections)
+```
 
 ## Scripts on this repository
 

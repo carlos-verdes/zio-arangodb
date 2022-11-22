@@ -9,7 +9,6 @@ import zio.*
 import zio.http.Client
 import zio.json.*
 import zio.test.*
-
 import model.*
 
 trait ArangoExamples:
@@ -54,6 +53,13 @@ object ArangoDatabaseIT extends ZIOSpecDefault with ArangoExamples:
 
   override def spec: Spec[TestEnvironment, Any] =
     suite("ArangoDB client should")(
+      test("Get server info") {
+        for
+          serverVersion <- ArangoClientJson.serverInfo().version()
+          databases <- ArangoClientJson.serverInfo().databases
+        yield assertTrue(serverVersion == ServerVersion("arango", "community", "3.7.15")) &&
+          assertTrue(Set(DatabaseName.system, DatabaseName("test")).subsetOf(databases.toSet))
+      },
       test("Create and drop a database") {
         for
           databaseApi <- ArangoClientJson.database(testDatabaseName).create()
@@ -64,7 +70,8 @@ object ArangoDatabaseIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(!dataInfo.isSystem) &&
           assertTrue(collections.forall(_.isSystem)) &&
           assertTrue(deleteResult)
-      }).provideShared(
+      }
+    ).provideShared(
       Scope.default,
       ArangoConfiguration.default,
       Client.default,

@@ -15,9 +15,7 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
 
   def login(username: String, password: String): AIO[Token]
 
-  def getBody[O: Decoder](header: ArangoMessage.Header): AIO[O] = get(header).map(_.body)
-  def commandBody[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[O] =
-    command(message).map(_.body)
+  def serverInfo: ArangoServer[Encoder, Decoder] = new ArangoServer[Encoder, Decoder](using this)
 
   def database(name: DatabaseName): ArangoDatabase[Encoder, Decoder] =
     new ArangoDatabase[Encoder, Decoder](name)(using this)
@@ -26,6 +24,11 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
     this.database(DatabaseName.system)
 
   def db: ArangoDatabase[Encoder, Decoder]
+
+  def getBody[O: Decoder](header: ArangoMessage.Header): AIO[O] = get(header).map(_.body)
+
+  def commandBody[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[O] =
+    command(message).map(_.body)
 
   def withConfiguration(config: ArangoConfiguration): ArangoClient[Encoder, Decoder]
 
@@ -46,6 +49,10 @@ object ArangoClient:
       f: ArangoClient[Encoder, Decoder] => O
   ): WithClient[Encoder, Decoder, O] =
     ZIO.service[ArangoClient[Encoder, Decoder]].map(f)
+
+  def serverInfo[Encoder[_]: TagK, Decoder[_]: TagK]()
+      : WithClient[Encoder, Decoder, ArangoServer[Encoder, Decoder]] =
+    withClient(_.serverInfo)
 
   def database[Encoder[_]: TagK, Decoder[_]: TagK](
       name: DatabaseName

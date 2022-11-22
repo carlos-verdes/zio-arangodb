@@ -16,8 +16,8 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
 
   def name: DatabaseName = databaseName
 
-  def graphs(using Decoder[ArangoResult[GraphList]]): AIO[List[GraphInfo]] =
-    GET(name, ApiGharialPath).executeIgnoreResult[GraphList, Encoder, Decoder].map(_.graphs)
+  def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo] =
+    GET(name, ApiDatabase.addPart("current")).executeIgnoreResult
 
   def create(users: List[DatabaseCreate.User] = List.empty)(using
       Encoder[DatabaseCreate],
@@ -36,9 +36,6 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
       ZIO.succeed(this)
     }
 
-  def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo] =
-    GET(name, ApiDatabase.addPart("current")).executeIgnoreResult
-
   def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean] =
     DELETE(DatabaseName.system, ApiDatabase.addPart(name.unwrap)).executeIgnoreResult
 
@@ -47,6 +44,8 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
   ): AIO[List[CollectionInfo]] =
     GET(name, ApiCollectionPath, Map("excludeSystem" -> excludeSystem.toString)).executeIgnoreResult
 
+  def graphs(using Decoder[ArangoResult[GraphList]]): AIO[List[GraphInfo]] =
+    GET(name, ApiGharialPath).executeIgnoreResult[GraphList, Encoder, Decoder].map(_.graphs)
   /*
   def collection(name: CollectionName): ArangoCollection[Encoder, Decoder]
 
