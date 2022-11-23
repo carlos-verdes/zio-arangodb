@@ -110,8 +110,9 @@ High level methods:
 - `def create(users: List[DatabaseCreate.User]): ArangoDatabase` - create this database, will fail if already exist
 - `def createIfNotExist(users: List[DatabaseCreate.User]): ArangoDatabase`
 - `def drop: Boolean` - drop current database
-- `def graphs: List[CollectionInfo]` - list of database collections
+- `def collections: List[CollectionInfo]` - list of database collections
 - `def graphs: List[GraphInfo]` - list of database graphs
+- `def collection(name: CollectionName): ArangoCollection` - access to collection API
 
 Example of usage:
 ```scala
@@ -122,6 +123,24 @@ for
   databaseInfo <- dbApi.info
   collections <- dbApi.collections()
 yield (databaseInfo, collections)
+```
+
+## Collection API [link](./arangodb/src/main/scala/io/funkode/arangodb/ArangoCollection.scala)
+
+High level methods:
+- `def database: DatabaseName` - current database name
+- `def name: CollectionName` - current collection name
+- `def info: CollectionInfo` - collection info
+- `def create(setup: CollectionCreate => CollectionCreate)` - create collection
+- `def createIfNotExist(setup: CollectionCreate => CollectionCreate)` - create collection if not exist
+- `def drop(isSystem: Boolean = false): DeleteResult` - drop collection
+
+Example of usage:
+```scala
+for
+  collection <- ArangoClientJson.collection("pets").createIfNotExist
+  collectionInfo <- collection.info
+yield collectionInfo
 ```
 
 ## Scripts on this repository

@@ -18,8 +18,9 @@ import io.funkode.arangodb.model.*
 import io.funkode.arangodb.protocol.*
 
 type ArangoClientJson = ArangoClient[JsonEncoder, JsonDecoder]
-type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
 type ArangoServerJson = ArangoServer[JsonEncoder, JsonDecoder]
+type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
+type ArangoCollectionJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
 
 trait HttpEncoder[Encoder[_]]:
@@ -53,7 +54,7 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
 
   private lazy val _db = new ArangoDatabase[Encoder, Decoder](config.database)(using this)
 
-  def db: io.funkode.arangodb.ArangoDatabase[Encoder, Decoder] = _db
+  def db: ArangoDatabase[Encoder, Decoder] = _db
 
   def head(header: ArangoMessage.Header): AIO[ArangoMessage.Header] =
     for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
@@ -235,6 +236,9 @@ object ArangoClientJson:
 
   def db: WithJsonClient[ArangoDatabaseJson] =
     withClient(_.db)
+
+  def collection(collectionName: CollectionName): WithJsonClient[ArangoCollectionJson] =
+    withClient(_.collection(collectionName))
 
   val jsonEncoderForHttp: HttpEncoder[JsonEncoder] = new HttpEncoder[JsonEncoder]:
     override def encode[R](r: R)(using E: JsonEncoder[R]) =

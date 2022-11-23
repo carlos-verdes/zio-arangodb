@@ -31,6 +31,7 @@ object Main extends ZIOAppDefault:
       db <- ArangoClientJson.database(testDb).createIfNotExist()
       dbInfo <- db.info
       _ <- printLine(s"""Working with database "${dbInfo.name}" (id: ${dbInfo.id})""")
+      alliesCol <- db.collection(allies).createIfNotExist()
       collections <- db.collections(true)
       _ <- printLine(s"""Database collections: ${collections.map(_.name).mkString(", ")}""")
       _ <- printLine(s"""Press any key to exit""")
