@@ -70,6 +70,19 @@ object ArangoDatabaseIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(!dataInfo.isSystem) &&
           assertTrue(collections.forall(_.isSystem)) &&
           assertTrue(deleteResult)
+      },
+      test("Create and drop a collection (default database)") {
+        for
+          collection <- ArangoClientJson.collection(randomCollection)
+          createdCollection <- collection.create()
+          collectionInfo <- collection.info
+          collectionChecksum <- collection.checksum()
+          deleteResult <- collection.drop()
+        yield assertTrue(createdCollection.name == randomCollection) &&
+          assertTrue(collectionInfo == createdCollection) &&
+          assertTrue(collectionChecksum.name == randomCollection) &&
+          assertTrue(!createdCollection.isSystem) &&
+          assertTrue(deleteResult.id == collectionInfo.id)
       }
     ).provideShared(
       Scope.default,

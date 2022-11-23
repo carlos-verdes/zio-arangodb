@@ -14,7 +14,7 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
     arangoClient: ArangoClient[Encoder, Decoder]
 ):
 
-  def name: DatabaseName = databaseName
+  val name: DatabaseName = databaseName
 
   def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo] =
     GET(name, ApiDatabase.addPart("current")).executeIgnoreResult
@@ -32,9 +32,7 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
       Encoder[DatabaseCreate],
       Decoder[ArangoResult[Boolean]]
   ): AIO[ArangoDatabase[Encoder, Decoder]] =
-    create(users).catchSome { case ArangoError(409, true, _, _) =>
-      ZIO.succeed(this)
-    }
+    create(users).ifConflict(ZIO.succeed(this))
 
   def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean] =
     DELETE(DatabaseName.system, ApiDatabase.addPart(name.unwrap)).executeIgnoreResult
@@ -46,27 +44,33 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
 
   def graphs(using Decoder[ArangoResult[GraphList]]): AIO[List[GraphInfo]] =
     GET(name, ApiGharialPath).executeIgnoreResult[GraphList, Encoder, Decoder].map(_.graphs)
-  /*
-  def collection(name: CollectionName): ArangoCollection[Encoder, Decoder]
 
-  def document(handle: DocumentHandle): ArangoDocument[Encoder, Decoder]
+  def collection(name: CollectionName): ArangoCollection[Encoder, Decoder] =
+    new ArangoCollection[Encoder, Decoder](this.name, name)
+/*
 
-  def graph(graphName: GraphName): ArangoGraph[Encoder, Decoder]
+def document(handle: DocumentHandle): ArangoDocument[Encoder, Decoder]
 
-  def query(query: Query): ArangoQuery[Encoder, Decoder]
+def graph(graphName: GraphName): ArangoGraph[Encoder, Decoder]
 
-  def query(qs: String, bindVars: VObject): ArangoQuery[Encoder, Decoder] = query(Query(qs, bindVars))
+def query(query: Query): ArangoQuery[Encoder, Decoder]
 
-  def query(qs: String): ArangoQuery[Encoder, Decoder] = query(qs, VObject.empty)
+def query(qs: String, bindVars: VObject): ArangoQuery[Encoder, Decoder] = query(Query(qs, bindVars))
 
-  def transactions: ArangoTransactions[F]
+def query(qs: String): ArangoQuery[Encoder, Decoder] = query(qs, VObject.empty)
 
-  def wal: ArangoWal[F]
-   */
+def transactions: ArangoTransactions[F]
+
+def wal: ArangoWal[F]
+ */
 
 object ArangoDatabase:
 
   extension [R, Enc[_], Dec[_]](dbService: ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]])
+
+    def info(using Dec[ArangoResult[DatabaseInfo]]): ZIO[R, ArangoError, DatabaseInfo] =
+      dbService.flatMap(_.info)
+
     def create(users: List[DatabaseCreate.User] = List.empty)(using
         Enc[DatabaseCreate],
         Dec[ArangoResult[Boolean]]
@@ -78,9 +82,6 @@ object ArangoDatabase:
         Dec[ArangoResult[Boolean]]
     ): ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]] =
       dbService.flatMap(_.createIfNotExist(users))
-
-    def info(using Dec[ArangoResult[DatabaseInfo]]): ZIO[R, ArangoError, DatabaseInfo] =
-      dbService.flatMap(_.info)
 
     def drop(using Dec[ArangoResult[Boolean]]): ZIO[R, ArangoError, Boolean] =
       dbService.flatMap(_.drop)

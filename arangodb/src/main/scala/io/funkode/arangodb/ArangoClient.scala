@@ -25,6 +25,9 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
 
   def db: ArangoDatabase[Encoder, Decoder]
 
+  def collection(collectionName: CollectionName): ArangoCollection[Encoder, Decoder] =
+    new ArangoCollection[Encoder, Decoder](this.db.name, collectionName)(using this)
+
   def getBody[O: Decoder](header: ArangoMessage.Header): AIO[O] = get(header).map(_.body)
 
   def commandBody[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[O] =
@@ -65,3 +68,8 @@ object ArangoClient:
 
   def db[Encoder[_]: TagK, Decoder[_]: TagK]: WithClient[Encoder, Decoder, ArangoDatabase[Encoder, Decoder]] =
     withClient(_.db)
+
+  def collection[Encoder[_]: TagK, Decoder[_]: TagK](
+      collectionName: CollectionName
+  ): WithClient[Encoder, Decoder, ArangoCollection[Encoder, Decoder]] =
+    withClient(_.collection(collectionName))
