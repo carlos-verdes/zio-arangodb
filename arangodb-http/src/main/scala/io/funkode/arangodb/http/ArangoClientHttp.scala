@@ -19,6 +19,7 @@ import io.funkode.arangodb.protocol.*
 
 type ArangoClientJson = ArangoClient[JsonEncoder, JsonDecoder]
 type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
+type ArangoServerJson = ArangoServer[JsonEncoder, JsonDecoder]
 type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
 
 trait HttpEncoder[Encoder[_]]:
@@ -220,6 +221,9 @@ object ArangoClientJson:
       f: ArangoClient[JsonEncoder, JsonDecoder] => O
   ): WithJsonClient[O] =
     ZIO.service[ArangoClientJson].map(f)
+
+  def serverInfo(): WithJsonClient[ArangoServerJson] =
+    withClient(_.serverInfo)
 
   def database(
       name: DatabaseName
