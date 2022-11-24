@@ -59,13 +59,11 @@ class ArangoCollection[Encoder[_], Decoder[_]](databaseName: DatabaseName, colle
   def rename(newName: CollectionName): F[ArangoResponse[CollectionInfo]]
    */
   def documents: ArangoDocuments[Encoder, Decoder] =
-    new ArangoDocuments[Encoder, Decoder](databaseName, collectionName)(using arangoClient)
-/*
-  def document(key: DocumentKey): ArangoDocument[Encoder, Decoder] =
-    new ArangoDocument.Impl[Encoder, Decoder](databaseName, DocumentHandle(this.name, documentKey))(
-      using arangoClient
-    )
+    new ArangoDocuments[Encoder, Decoder](databaseName, collectionName)
 
+  def document(key: DocumentKey): ArangoDocument[Encoder, Decoder] =
+    new ArangoDocument[Encoder, Decoder](databaseName, DocumentHandle(this.name, key))
+/*
   def indexes: ArangoIndexes[F]
 
   def index(id: String): ArangoIndex[F]

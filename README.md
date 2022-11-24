@@ -160,17 +160,36 @@ Example of usage:
 for
   documents <- ArangoClientJson.collection(petsCollection).createIfNotExist().documents
   document <- documents.insert(pet1, true, true)
-yield
-  document
-
+yield document
 ```
   `
+## Document API [link](./arangodb/src/main/scala/io/funkode/arangodb/ArangoDocument.scala)
+
+High level methods:
+- `def database: DatabaseName` - current database name
+- `def handle: DocumentHandle` - current document handle (collection and key)
+- `def read[T: Decoder]: T` - retrieve current document
+- `def head: ArangoMessage.Header` - retrieve document metadata headers
+- `def remove[T: Decoder]: Document[T]` - delete document
+- `def update[T, P](patch: P): Document[T]` - patch document
+- `def replate[T](document: T): Document[T]` - replace document
+
+Example of usage:
+```scala
+for
+  collection <- ArangoClientJson.collection(petsCollection).createIfNotExist()
+  document = collection.document(petKey)
+  pet <- document.read[Pet]
+yield pet
+```
+
 ## Scripts on this repository
 
 Start ArangoDB with docker:
 ```sh
 make startDockerArango
 ```
+
 
 Run local test versus running ArangoDB instance (default port 8529):
 ```shell

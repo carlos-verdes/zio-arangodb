@@ -9,8 +9,8 @@ import model.*
 import protocol.*
 import ArangoMessage.*
 
-class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collectionName: CollectionName)(using
-  arangoClient: ArangoClient[Encoder, Decoder]
+class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collectionName: CollectionName)(
+    using arangoClient: ArangoClient[Encoder, Decoder]
 ):
 
   def database: DatabaseName = databaseName
@@ -20,7 +20,7 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
   val path = ApiDocumentPath.addPart(collection.unwrap)
 
   def count(transactionId: Option[TransactionId] = None)(using
-    Decoder[CollectionCount]
+      Decoder[CollectionCount]
   ): AIO[Long] =
     GET(
       database,
@@ -31,16 +31,16 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
     ).execute.map(_.count)
 
   def insert[T](
-    document: T,
-    waitForSync: Boolean = false,
-    returnNew: Boolean = false,
-    returnOld: Boolean = false,
-    silent: Boolean = false,
-    overwrite: Boolean = false,
-    transaction: Option[TransactionId] = None
+      document: T,
+      waitForSync: Boolean = false,
+      returnNew: Boolean = false,
+      returnOld: Boolean = false,
+      silent: Boolean = false,
+      overwrite: Boolean = false,
+      transaction: Option[TransactionId] = None
   )(using
-    Encoder[T],
-    Decoder[Document[T]]
+      Encoder[T],
+      Decoder[Document[T]]
   ): AIO[Document[T]] =
     POST(
       database,
@@ -58,16 +58,16 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
     ).withBody(document).execute[Document[T], Encoder, Decoder]
 
   def create[T](
-    documents: List[T],
-    waitForSync: Boolean = false,
-    returnNew: Boolean = false,
-    returnOld: Boolean = false,
-    silent: Boolean = false,
-    overwrite: Boolean = false,
-    transaction: Option[TransactionId] = None
+      documents: List[T],
+      waitForSync: Boolean = false,
+      returnNew: Boolean = false,
+      returnOld: Boolean = false,
+      silent: Boolean = false,
+      overwrite: Boolean = false,
+      transaction: Option[TransactionId] = None
   )(using
-    Encoder[List[T]],
-    Decoder[List[Document[T]]]
+      Encoder[List[T]],
+      Decoder[List[Document[T]]]
   ): AIO[List[Document[T]]] =
     POST(
       database,
@@ -85,15 +85,15 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
     ).withBody(documents).execute
 
   def replace[T](
-    documents: List[T],
-    waitForSync: Boolean = false,
-    ignoreRevs: Boolean = true,
-    returnOld: Boolean = false,
-    returnNew: Boolean = false,
-    transaction: Option[TransactionId] = None
+      documents: List[T],
+      waitForSync: Boolean = false,
+      ignoreRevs: Boolean = true,
+      returnOld: Boolean = false,
+      returnNew: Boolean = false,
+      transaction: Option[TransactionId] = None
   )(using
-    Encoder[List[T]],
-    Decoder[List[Document[T]]]
+      Encoder[List[T]],
+      Decoder[List[Document[T]]]
   ): AIO[List[Document[T]]] =
     PUT(
       database,
@@ -110,17 +110,17 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
     ).withBody(documents).execute
 
   def update[T, P](
-    patch: List[P],
-    keepNull: Boolean = false,
-    mergeObjects: Boolean = true,
-    waitForSync: Boolean = false,
-    ignoreRevs: Boolean = true,
-    returnOld: Boolean = false,
-    returnNew: Boolean = false,
-    transaction: Option[TransactionId] = None
+      patch: List[P],
+      keepNull: Boolean = false,
+      mergeObjects: Boolean = true,
+      waitForSync: Boolean = false,
+      ignoreRevs: Boolean = true,
+      returnOld: Boolean = false,
+      returnNew: Boolean = false,
+      transaction: Option[TransactionId] = None
   )(using
-    Encoder[List[P]],
-    Decoder[List[Document[T]]]
+      Encoder[List[P]],
+      Decoder[List[Document[T]]]
   ): AIO[List[Document[T]]] =
     PATCH(
       database,
@@ -139,14 +139,14 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
     ).withBody(patch).execute
 
   def remove[T, K](
-    keys: List[K],
-    waitForSync: Boolean = false,
-    returnOld: Boolean = false,
-    ignoreRevs: Boolean = true,
-    transaction: Option[TransactionId] = None
+      keys: List[K],
+      waitForSync: Boolean = false,
+      returnOld: Boolean = false,
+      ignoreRevs: Boolean = true,
+      transaction: Option[TransactionId] = None
   )(using
-    Encoder[List[K]],
-    Decoder[List[Document[T]]]
+      Encoder[List[K]],
+      Decoder[List[Document[T]]]
   ): AIO[List[Document[T]]] =
     DELETE(
       database,
