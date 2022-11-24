@@ -73,16 +73,40 @@ object ArangoDatabaseIT extends ZIOSpecDefault with ArangoExamples:
       },
       test("Create and drop a collection (default database)") {
         for
-          collection <- ArangoClientJson.collection(randomCollection)
-          createdCollection <- collection.create()
+          collection <- ArangoClientJson.collection(randomCollection).create()
           collectionInfo <- collection.info
           collectionChecksum <- collection.checksum()
           deleteResult <- collection.drop()
-        yield assertTrue(createdCollection.name == randomCollection) &&
-          assertTrue(collectionInfo == createdCollection) &&
+        yield assertTrue(collectionInfo.name == randomCollection) &&
+          assertTrue(!collectionInfo.isSystem) &&
           assertTrue(collectionChecksum.name == randomCollection) &&
-          assertTrue(!createdCollection.isSystem) &&
           assertTrue(deleteResult.id == collectionInfo.id)
+      },
+      test("Save documents in a collection") {
+        for
+          documents <- ArangoClientJson.collection(petsCollection).create().documents
+          inserted1 <- documents.insert(pet1, true, true)
+          inserted2 <- documents.insert(pet2, true, true)
+          insertedCount <- documents.count()
+          created <- documents.create(morePets, true, true)
+          countAfterCreated <- documents.count()
+          updatedDocs <- documents
+            .update[Pet, PatchAge](List(patchPet(inserted2._key)), waitForSync = true, returnNew = true)
+          countAfterUpdate <- documents.count()
+          deletedDocs <- documents.remove[Pet, DocumentKey](List(inserted1._key), true)
+          countAfterDelete <- documents.count()
+          _ <- ArangoClientJson.collection(petsCollection).drop()
+        yield assertTrue(inserted1.`new`.get == pet1) &&
+          assertTrue(inserted2.`new`.get == pet2) &&
+          assertTrue(insertedCount == 2L) &&
+          assertTrue(created.map(_.`new`.get) == morePets) &&
+          assertTrue(countAfterCreated == 4L) &&
+          assertTrue(updatedDocs.length == 1) &&
+          assertTrue(updatedDocs.head.`new`.get == updatedPet2) &&
+          assertTrue(countAfterUpdate == 4L) &&
+          assertTrue(deletedDocs.length == 1) &&
+          assertTrue(deletedDocs.head._key == inserted1._key) &&
+          assertTrue(countAfterDelete == 3L)
       }
     ).provideShared(
       Scope.default,

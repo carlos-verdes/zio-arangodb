@@ -68,9 +68,6 @@ object ArangoDatabase:
 
   extension [R, Enc[_], Dec[_]](dbService: ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]])
 
-    def info(using Dec[ArangoResult[DatabaseInfo]]): ZIO[R, ArangoError, DatabaseInfo] =
-      dbService.flatMap(_.info)
-
     def create(users: List[DatabaseCreate.User] = List.empty)(using
         Enc[DatabaseCreate],
         Dec[ArangoResult[Boolean]]
@@ -85,8 +82,3 @@ object ArangoDatabase:
 
     def drop(using Dec[ArangoResult[Boolean]]): ZIO[R, ArangoError, Boolean] =
       dbService.flatMap(_.drop)
-
-    def collections(excludeSystem: Boolean = false)(using
-        Dec[ArangoResult[List[CollectionInfo]]]
-    ): ZIO[R, ArangoError, List[CollectionInfo]] =
-      dbService.flatMap(_.collections(excludeSystem))

@@ -143,6 +143,28 @@ for
 yield collectionInfo
 ```
 
+## Documents API [link](./arangodb/src/main/scala/io/funkode/arangodb/ArangoDocuments.scala)
+
+High level methods:
+- `def database: DatabaseName` - current database name
+- `def collection: CollectionName` - current collection name
+- `def count: Long` - number of documents for this collection
+- `def insert[T](document: T, ...): Document[T]` - insert new document, retrieves `Document[T]` which has internal id, key and revision
+- `def create[T](documents: List[T], ...): List[Document[T]]` - insert list of documents
+- `def replace[T](documents: List[T], ...): List[Document[T]]` - replace list of documents
+- `def update[T, P](patch: List[P], ...): List[Document[T]]` - patch list of documents
+- `def remove[T, K](keys: List[K], ...): List[Document[T]]` - remove list of documents by key
+
+Example of usage:
+```scala
+for
+  documents <- ArangoClientJson.collection(petsCollection).createIfNotExist().documents
+  document <- documents.insert(pet1, true, true)
+yield
+  document
+
+```
+  `
 ## Scripts on this repository
 
 Start ArangoDB with docker:

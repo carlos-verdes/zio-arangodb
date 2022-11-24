@@ -33,20 +33,20 @@ class ArangoCollection[Encoder[_], Decoder[_]](databaseName: DatabaseName, colle
   def create(setup: CollectionCreate => CollectionCreate = identity)(using
       Encoder[CollectionCreate],
       Decoder[CollectionInfo]
-  ): AIO[CollectionInfo] =
+  ): AIO[ArangoCollection[Encoder, Decoder]] =
     val options = setup(CollectionCreate(name))
-    POST(database, ApiCollectionPath, options.parameters).withBody(options).execute
+    POST(database, ApiCollectionPath, options.parameters).withBody(options).execute.map(_ => this)
 
   def createIfNotExist(setup: CollectionCreate => CollectionCreate = identity)(using
       Encoder[CollectionCreate],
       Decoder[CollectionInfo]
   ): AIO[ArangoCollection[Encoder, Decoder]] =
-    create(setup).map(_ => this).ifConflict(ZIO.succeed(this))
+    create(setup).ifConflict(ZIO.succeed(this))
 
   def drop(isSystem: Boolean = false)(using D: Decoder[DeleteResult]): AIO[DeleteResult] =
     DELETE(database, path).execute
 
-/*
+  /*
   def revision(): F[ArangoResponse[CollectionRevision]]
 
   def properties(): F[ArangoResponse[CollectionProperties]]
@@ -57,10 +57,10 @@ class ArangoCollection[Encoder[_], Decoder[_]](databaseName: DatabaseName, colle
   def truncate(waitForSync: Boolean = false, compact: Boolean = true): F[ArangoResponse[CollectionInfo]]
 
   def rename(newName: CollectionName): F[ArangoResponse[CollectionInfo]]
-
+   */
   def documents: ArangoDocuments[Encoder, Decoder] =
-    new ArangoDocuments.Impl[Encoder, Decoder](databaseName, collectionName)(using arangoClient)
-
+    new ArangoDocuments[Encoder, Decoder](databaseName, collectionName)(using arangoClient)
+/*
   def document(key: DocumentKey): ArangoDocument[Encoder, Decoder] =
     new ArangoDocument.Impl[Encoder, Decoder](databaseName, DocumentHandle(this.name, documentKey))(
       using arangoClient
@@ -76,14 +76,21 @@ class ArangoCollection[Encoder[_], Decoder[_]](databaseName: DatabaseName, colle
 object ArangoCollection:
 
   extension [R, Enc[_], Dec[_]](colService: ZIO[R, ArangoError, ArangoCollection[Enc, Dec]])
-    def info(using Dec[CollectionInfo]): ZIO[R, ArangoError, CollectionInfo] =
-      colService.flatMap(_.info)
 
     def create(setup: CollectionCreate => CollectionCreate = identity)(using
         Enc[CollectionCreate],
         Dec[CollectionInfo]
-    ): ZIO[R, ArangoError, CollectionInfo] =
+    ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
       colService.flatMap(_.create(setup))
+
+    def createIfNotExist(setup: CollectionCreate => CollectionCreate = identity)(using
+        Enc[CollectionCreate],
+        Dec[CollectionInfo]
+    ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
+      colService.flatMap(_.createIfNotExist(setup))
 
     def drop(isSystem: Boolean = false)(using D: Dec[DeleteResult]): ZIO[R, ArangoError, DeleteResult] =
       colService.flatMap(_.drop(isSystem))
+
+    def documents: ZIO[R, ArangoError, ArangoDocuments[Enc, Dec]] =
+      colService.map(_.documents)
