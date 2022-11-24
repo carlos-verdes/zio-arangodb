@@ -47,18 +47,18 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
 
   def collection(name: CollectionName): ArangoCollection[Encoder, Decoder] =
     new ArangoCollection[Encoder, Decoder](this.name, name)
-/*
 
-def document(handle: DocumentHandle): ArangoDocument[Encoder, Decoder]
-
+  def document(handle: DocumentHandle): ArangoDocument[Encoder, Decoder] =
+    new ArangoDocument[Encoder, Decoder](name, handle)
+  /*
 def graph(graphName: GraphName): ArangoGraph[Encoder, Decoder]
+   */
+  def query(query: Query): ArangoQuery[Encoder, Decoder] = new ArangoQuery(name, query)
 
-def query(query: Query): ArangoQuery[Encoder, Decoder]
+  def query(qs: String, bindVars: VObject): ArangoQuery[Encoder, Decoder] = query(Query(qs, bindVars))
 
-def query(qs: String, bindVars: VObject): ArangoQuery[Encoder, Decoder] = query(Query(qs, bindVars))
-
-def query(qs: String): ArangoQuery[Encoder, Decoder] = query(qs, VObject.empty)
-
+  def query(qs: String): ArangoQuery[Encoder, Decoder] = query(qs, VObject.empty)
+/*
 def transactions: ArangoTransactions[F]
 
 def wal: ArangoWal[F]
