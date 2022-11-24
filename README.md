@@ -183,6 +183,42 @@ for
 yield pet
 ```
 
+## Query API [link](./arangodb/src/main/scala/io/funkode/arangodb/ArangoQuery.scala)
+
+High level methods:
+- `def database: DatabaseName` - current database name
+- `batchSize(value: Long): ArangoQuery` - setup batch size and return new query
+- `count(value: Boolean): ArangoQuery` - set if query returns count
+- `transaction(id: TransactionId): ArangoQuery` - setup transaction id for the query
+- `def execute[T: Decoder]: QueryResults[T]` - execute query and return results (no pagination)
+- `def cursor[T: Decoder]: ArangoCursor[T]` - execute query and return results with cursor
+- `def stream[T: Decoder]: ZStream[Any, ArangoError, T]` - execute query and return streamed results
+
+Examples of usage:
+```scala
+for
+  db <- ArangoClientJson.database(DatabaseName("test"))
+  queryCountries =
+    db
+      .query(
+        Query("FOR c IN @@col SORT c RETURN c")
+          .bindVar("@col", VString("countries"))
+      )
+      .count(true)
+      .batchSize(2) // setup the batch size
+  // query with cursor
+  cursor <- queryCountries.cursor[Country]
+  firstResults = cursor.body
+  // cursor has a next method to get next batch
+  more <- cursor.next
+  secondResults = more.body
+  // another approach is to use directly streams
+  firstStreamResults <- queryCountries.stream[Country].run(ZSink.take(4))
+  streamResultsCount <- queryCountries.stream[Country].run(ZSink.count)
+  streamedResults <- queryCountries.stream[Country]
+yield streamedResults
+```
+
 ## Scripts on this repository
 
 Start ArangoDB with docker:

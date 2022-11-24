@@ -3,16 +3,16 @@
  */
 package io.funkode.arangodb.model
 
-final case class Cursor[T](
+final case class QueryResults[T](
     cached: Boolean,
     count: Option[Long] = None,
-    extra: Option[Cursor.Extra] = None,
+    extra: Option[QueryResults.Extra] = None,
     hasMore: Boolean,
     id: Option[String] = None,
     result: List[T]
 )
 
-object Cursor:
+object QueryResults:
 
   final case class ExtraStats(
       writesExecuted: Option[Long] = None,

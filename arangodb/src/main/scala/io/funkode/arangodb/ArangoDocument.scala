@@ -10,7 +10,7 @@ import protocol.*
 import ArangoMessage.*
 
 class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documentHandle: DocumentHandle)(using
-  arangoClient: ArangoClient[Encoder, Decoder]
+    arangoClient: ArangoClient[Encoder, Decoder]
 ):
 
   def database: DatabaseName = databaseName
@@ -19,9 +19,9 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
   private val path = ApiDocumentPath.addParts(handle.path.parts)
 
   def read[T: Decoder](
-    ifNoneMatch: Option[String] = None,
-    ifMatch: Option[String] = None,
-    transaction: Option[TransactionId] = None
+      ifNoneMatch: Option[String] = None,
+      ifMatch: Option[String] = None,
+      transaction: Option[TransactionId] = None
   ): AIO[T] =
     GET(
       database,
@@ -34,9 +34,9 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
     ).execute
 
   def head(
-    ifNoneMatch: Option[String] = None,
-    ifMatch: Option[String] = None,
-    transaction: Option[TransactionId] = None
+      ifNoneMatch: Option[String] = None,
+      ifMatch: Option[String] = None,
+      transaction: Option[TransactionId] = None
   ): AIO[ArangoMessage.Header] =
     HEAD(
       database,
@@ -49,11 +49,11 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
     ).head
 
   def remove[T](
-    waitForSync: Boolean = false,
-    returnOld: Boolean = false,
-    silent: Boolean = false,
-    ifMatch: Option[String] = None,
-    transaction: Option[TransactionId] = None
+      waitForSync: Boolean = false,
+      returnOld: Boolean = false,
+      silent: Boolean = false,
+      ifMatch: Option[String] = None,
+      transaction: Option[TransactionId] = None
   )(using D: Decoder[Document[T]]): AIO[Document[T]] =
     DELETE(
       database,
@@ -70,19 +70,19 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
     ).execute
 
   def update[T, P](
-    patch: P,
-    keepNull: Boolean = false,
-    mergeObjects: Boolean = true,
-    waitForSync: Boolean = false,
-    ignoreRevs: Boolean = true,
-    returnOld: Boolean = false,
-    returnNew: Boolean = false,
-    silent: Boolean = false,
-    ifMatch: Option[String] = None,
-    transaction: Option[TransactionId] = None
+      patch: P,
+      keepNull: Boolean = false,
+      mergeObjects: Boolean = true,
+      waitForSync: Boolean = false,
+      ignoreRevs: Boolean = true,
+      returnOld: Boolean = false,
+      returnNew: Boolean = false,
+      silent: Boolean = false,
+      ifMatch: Option[String] = None,
+      transaction: Option[TransactionId] = None
   )(using
-    Encoder[P],
-    Decoder[Document[T]]
+      Encoder[P],
+      Decoder[Document[T]]
   ): AIO[Document[T]] =
     PATCH(
       database,
@@ -103,17 +103,17 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
     ).withBody(patch).execute
 
   def replace[T](
-    document: T,
-    waitForSync: Boolean = false,
-    ignoreRevs: Boolean = true,
-    returnOld: Boolean = false,
-    returnNew: Boolean = false,
-    silent: Boolean = false,
-    ifMatch: Option[String] = None,
-    transaction: Option[TransactionId] = None
+      document: T,
+      waitForSync: Boolean = false,
+      ignoreRevs: Boolean = true,
+      returnOld: Boolean = false,
+      returnNew: Boolean = false,
+      silent: Boolean = false,
+      ifMatch: Option[String] = None,
+      transaction: Option[TransactionId] = None
   )(using
-    Encoder[T],
-    Decoder[Document[T]]
+      Encoder[T],
+      Decoder[Document[T]]
   ): AIO[Document[T]] =
     PUT(
       database,
@@ -131,14 +131,13 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
       ).collectDefined
     ).withBody(document).execute
 
-  /*
   import VPack.*
   import VObject.updated
   import VPackEncoder.given
 
   def upsert(obj: VObject)(using
-    Encoder[Query],
-    Decoder[Cursor[VObject]]
+      Encoder[Query],
+      Decoder[QueryResults[VObject]]
   ): AIO[VObject] =
     val kvs = obj.values.keys
       .map { key =>
@@ -148,11 +147,10 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
     val queryString =
       s"UPSERT {_key:@_key} INSERT {_key:@_key,$kvs} UPDATE {$kvs} IN @@collection RETURN NEW"
 
-    new ArangoQuery.Impl[Encoder, Decoder](
+    new ArangoQuery[Encoder, Decoder](
       databaseName,
       Query(
         queryString,
         obj.updated("@collection", handle.collection.unwrap).updated("_key", handle.key.unwrap)
       )
     ).execute[VObject].map(_.result.head)
-  */
