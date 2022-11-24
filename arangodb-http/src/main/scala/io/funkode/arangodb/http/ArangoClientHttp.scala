@@ -21,6 +21,7 @@ type ArangoClientJson = ArangoClient[JsonEncoder, JsonDecoder]
 type ArangoServerJson = ArangoServer[JsonEncoder, JsonDecoder]
 type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
 type ArangoCollectionJson = ArangoCollection[JsonEncoder, JsonDecoder]
+type ArangoDocumentsJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
 
 trait HttpEncoder[Encoder[_]]:
