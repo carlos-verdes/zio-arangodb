@@ -50,9 +50,10 @@ class ArangoDatabase[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
 
   def document(handle: DocumentHandle): ArangoDocument[Encoder, Decoder] =
     new ArangoDocument[Encoder, Decoder](name, handle)
-  /*
-def graph(graphName: GraphName): ArangoGraph[Encoder, Decoder]
-   */
+
+  def graph(graphName: GraphName): ArangoGraph[Encoder, Decoder] =
+    new ArangoGraph[Encoder, Decoder](this.name, graphName)
+
   def query(query: Query): ArangoQuery[Encoder, Decoder] = new ArangoQuery(name, query)
 
   def query(qs: String, bindVars: VObject): ArangoQuery[Encoder, Decoder] = query(Query(qs, bindVars))
@@ -82,3 +83,8 @@ object ArangoDatabase:
 
     def drop(using Dec[ArangoResult[Boolean]]): ZIO[R, ArangoError, Boolean] =
       dbService.flatMap(_.drop)
+
+    def collection(collectionName: CollectionName): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
+      dbService.map(_.collection(collectionName))
+
+    def query(query: Query): ZIO[R, ArangoError, ArangoQuery[Enc, Dec]] = dbService.map(_.query(query))

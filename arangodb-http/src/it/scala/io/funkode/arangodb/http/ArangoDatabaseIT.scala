@@ -10,7 +10,6 @@ import zio.http.Client
 import zio.json.*
 import zio.test.*
 import zio.stream.*
-
 import model.*
 import protocol.*
 import ArangoMessage.*
@@ -198,6 +197,24 @@ object ArangoDatabaseIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(secondResults.hasMore) &&
           assertTrue(firstStreamResults.toList == (firstCountries ++ secondCountries)) &&
           assertTrue(streamResultsCount == 250L)
+      },
+      test("Create a graph and query") {
+        for
+          graph <- ArangoClientJson.graph(politics)
+          graphCreated <- graph.create(graphEdgeDefinitions)
+          alliesCol = ArangoClientJson.db.collection(allies)
+          _ <- alliesCol.documents.create(alliesOfEs)
+          queryAlliesOfSpain =
+            ArangoClientJson.db
+              .query(
+                Query("FOR c IN OUTBOUND @startVertex @@edge RETURN c")
+                  .bindVar("startVertex", VString(es.unwrap))
+                  .bindVar("@edge", VString(allies.unwrap))
+              )
+          resultQuery <- queryAlliesOfSpain.execute[Country].map(_.result)
+        yield assertTrue(graphCreated.name == politics) &&
+          assertTrue(graphCreated.edgeDefinitions == graphEdgeDefinitions) &&
+          assertTrue(resultQuery == expectedAllies)
       }
     ).provideShared(
       Scope.default,

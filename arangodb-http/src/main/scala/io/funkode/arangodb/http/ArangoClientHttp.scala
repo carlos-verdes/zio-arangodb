@@ -22,6 +22,7 @@ type ArangoServerJson = ArangoServer[JsonEncoder, JsonDecoder]
 type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
 type ArangoCollectionJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type ArangoDocumentsJson = ArangoCollection[JsonEncoder, JsonDecoder]
+type ArangoGraphJson = ArangoGraph[JsonEncoder, JsonDecoder]
 type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
 
 trait HttpEncoder[Encoder[_]]:
@@ -240,6 +241,9 @@ object ArangoClientJson:
 
   def collection(collectionName: CollectionName): WithJsonClient[ArangoCollectionJson] =
     withClient(_.collection(collectionName))
+
+  def graph(graphName: GraphName): WithJsonClient[ArangoGraphJson] =
+    withClient(_.graph(graphName))
 
   val jsonEncoderForHttp: HttpEncoder[JsonEncoder] = new HttpEncoder[JsonEncoder]:
     override def encode[R](r: R)(using E: JsonEncoder[R]) =

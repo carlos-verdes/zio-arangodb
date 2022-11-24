@@ -219,6 +219,42 @@ for
 yield streamedResults
 ```
 
+## Graph API [link](./arangodb/src/main/scala/io/funkode/arangodb/ArangoGraph.scala)
+
+High level methods:
+- `def name: GraphName` - graph name
+- `def create: GraphInfo` - create graph
+- `def info: GraphInfo` - graph info
+- `def vertexCollections: List[CollectionName]` - retrieves vertex collections
+- `def addVertexCollection: GrahInfo` - add a vertex collection
+- `def removeVertexCollection: GrahInfo` - remove a vertex collection
+- `def collection: ArangoGraphCollection` - access to graph collection api
+- `def vertex(handle: DocumentHandle): ArangoGraphVertex` - access to vertex api
+- `def edge(handle: DocumentHandle): ArangoGraphEdge` - access to edge api
+
+Example of usage:
+```scala
+val politics = GraphName("politics")
+val allies = CollectionName("allies")
+val countries = CollectionName("countries")
+val graphEdgeDefinitions = List(GraphEdgeDefinition(allies, List(countries), List(countries)))
+
+for
+  graph <- ArangoClientJson.graph(politics)
+  graphCreated <- graph.create(graphEdgeDefinitions)
+  alliesCol = ArangoClientJson.db.collection(allies)
+  _ <- alliesCol.documents.create(alliesOfEs)
+  queryAlliesOfSpain =
+    ArangoClientJson.db
+      .query(
+        Query("FOR c IN OUTBOUND @startVertex @@edge RETURN c")
+          .bindVar("startVertex", VString(es.unwrap))
+          .bindVar("@edge", VString(allies.unwrap))
+      )
+  resultQuery <- queryAlliesOfSpain.execute[Country].map(_.result)
+yield resultQuery
+```
+
 ## Scripts on this repository
 
 Start ArangoDB with docker:
