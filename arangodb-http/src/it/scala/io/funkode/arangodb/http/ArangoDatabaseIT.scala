@@ -4,6 +4,7 @@
 package io.funkode.arangodb
 package http
 
+import io.funkode.arangodb.protocol.ArangoMessage.Header
 import io.funkode.velocypack.VPack
 import zio.*
 import zio.http.Client
@@ -107,6 +108,51 @@ object ArangoDatabaseIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(deletedDocs.length == 1) &&
           assertTrue(deletedDocs.head._key == inserted1._key) &&
           assertTrue(countAfterDelete == 3L)
+      },
+      test("Save single document in a collection") {
+        for
+          createdCollection <- ArangoClientJson.collection(pets2Collection).create()
+          documents = createdCollection.documents
+          document = createdCollection.document(petWithKey._key)
+          beforeCount <- documents.count()
+          created <- documents.insert(petWithKey, true, true)
+          insertedCount <- documents.count()
+          fetched <- document.read[PetWithKey]()
+          head <- document.head()
+          updated <- document
+            .update[PetWithKey, PatchAge](patchPetWithKey, waitForSync = true, returnNew = true)
+          countAfterUpdate <- documents.count()
+          replaced <- document
+            .replace[PatchAge](patchPetWithKey, waitForSync = true, returnNew = true)
+          countAfterReplace <- documents.count()
+          /*
+          upserted <- document.upsert(upsertPet)
+          countAfterUpsert <- documents.count()
+           */
+          deletedDoc <- document.remove[PatchAge](true)
+          countAfterDelete <- documents.count()
+          _ <- createdCollection.drop()
+        yield assertTrue(beforeCount == 0L) &&
+          assertTrue(created.`new`.get == petWithKey) &&
+          assertTrue(insertedCount == 1L) &&
+          assertTrue(fetched == petWithKey) &&
+          assertTrue(head match
+            case Header.Response(_, _, code, _) => code == 200
+            case _                              => false
+          ) &&
+          // `update` patches original
+          assertTrue(updated.`new`.get == newPetWithKey) &&
+          assertTrue(countAfterUpdate == 1L) &&
+          // `replace` only stores new document
+          assertTrue(replaced.`new`.get == patchPetWithKey) &&
+          assertTrue(countAfterReplace == 1L) &&
+          // `upsert` insert/update
+          /*
+          assertTrue(upserted.pure == upsertedPet) &&
+          assertTrue(countAfterUpsert == 1L) &&
+           */
+          assertTrue(deletedDoc._key == petWithKey._key) &&
+          assertTrue(countAfterDelete == 0L)
       }
     ).provideShared(
       Scope.default,
