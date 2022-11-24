@@ -160,3 +160,22 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
         Transaction.Key -> transaction.map(_.unwrap)
       ).collectDefined
     ).withBody(keys).execute
+
+object ArangoDocuments:
+
+  extension [R, Enc[_], Dec[_]](docsService: ZIO[R, ArangoError, ArangoDocuments[Enc, Dec]])
+    def create[T](
+        documents: List[T],
+        waitForSync: Boolean = false,
+        returnNew: Boolean = false,
+        returnOld: Boolean = false,
+        silent: Boolean = false,
+        overwrite: Boolean = false,
+        transaction: Option[TransactionId] = None
+    )(using
+        Enc[List[T]],
+        Dec[List[Document[T]]]
+    ): ZIO[R, ArangoError, List[Document[T]]] =
+      docsService.flatMap(
+        _.create(documents, waitForSync, returnNew, returnOld, silent, overwrite, transaction)
+      )

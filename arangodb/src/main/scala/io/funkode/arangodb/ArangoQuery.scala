@@ -48,7 +48,7 @@ class ArangoQuery[Encoder[_], Decoder[_]](
       ArangoCursor.apply[Encoder, Decoder, T](database, resp, options)
     }
 
-  def stream[T: Decoder](using Encoder[Query], Decoder[QueryResults[T]]): ZStream[Any, ArangoError, T] =
+  def stream[T](using Encoder[Query], Decoder[QueryResults[T]]): ZStream[Any, ArangoError, T] =
     ZStream.unwrap(
       for cursorResults <- cursor[T]
       yield ZStream.paginateChunkZIO(cursorResults) { cursor =>
@@ -62,3 +62,13 @@ class ArangoQuery[Encoder[_], Decoder[_]](
 object ArangoQuery:
 
   case class Options(transaction: Option[TransactionId] = None)
+
+  extension [R, Enc[_], Dec[_]](queryService: ZIO[R, ArangoError, ArangoQuery[Enc, Dec]])
+    def execute[T](using Enc[Query], Dec[QueryResults[T]]): ZIO[R, ArangoError, QueryResults[T]] =
+      queryService.flatMap(_.execute[T])
+
+    def cursor[T](using Enc[Query], Dec[QueryResults[T]]): ZIO[R, ArangoError, ArangoCursor[Dec, T]] =
+      queryService.flatMap(_.cursor[T])
+
+    def stream[T](using Enc[Query], Dec[QueryResults[T]]): ZStream[R, ArangoError, T] =
+      ZStream.unwrap(queryService.map(_.stream[T]))
