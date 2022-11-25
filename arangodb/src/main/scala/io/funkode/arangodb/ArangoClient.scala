@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Carlos Verdes
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package io.funkode.arangodb
 
 import java.util.Base64.Decoder

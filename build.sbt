@@ -3,18 +3,36 @@ import Libraries._
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
+ThisBuild / homepage := Some(url("https://github.com/carlos-verdes/zio-arangodb"))
+ThisBuild / scmInfo := Some(ScmInfo(url("https://github.com/carlos-verdes/zio-arangodb"), "git@github.com:carlos-verdes/zio-arangodb.git"))
+ThisBuild / developers := List(Developer("carlos-verdes", "Carlos Verdes", "cverdes@gmail.com", url("https://github.com/carlos-verdes")))
+ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("releases")
+
+// release plugin
+//import ReleaseTransformations._
+import xerial.sbt.Sonatype._
+
+ThisBuild / releaseCrossBuild := true
+ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
+
 Test / fork := true
 IntegrationTest / fork := true
 
 inThisBuild(
-  List(
+  Seq(
     organization := "io.funkode",
-    scalaVersion := "3.2.2-RC1",
+    scalaVersion :="3.2.2-RC1",
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
-    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
-  )
-)
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
+    publishTo := sonatypePublishToBundle.value,
+    sonatypeCredentialHost :="s01.oss.sonatype.org",
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
+    //releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+    startYear := Some(2022),
+    licenses += ("MIT", new URL("https://opensource.org/licenses/MIT")),
+))
 
 ThisBuild / scalacOptions ++=
   Seq(
@@ -40,44 +58,60 @@ lazy val velocypack =
     .in(file("velocypack"))
     .configs(IntegrationTest)
     .settings(Defaults.itSettings)
+    .settings(headerSettings(Test, IntegrationTest))
     .settings(Seq(
       name := "zio-velocypack",
       libraryDependencies ++= commonLibs ++ Seq(scodecCore) ++ zioLibs ++ testLibs,
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")),
+      headerLicense := Some(HeaderLicense.MIT("2022", "Carlos Verdes", HeaderLicenseStyle.SpdxSyntax)),
+      headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax)
+    .enablePlugins(AutomateHeaderPlugin)
 
 lazy val arango =
   project
     .in(file("arangodb"))
     .configs(IntegrationTest)
     .settings(Defaults.itSettings)
+    .settings(headerSettings(Test, IntegrationTest))
     .settings(Seq(
       name := "zio-arangodb",
       libraryDependencies ++= commonLibs ++ zioLibs ++ testLibs,
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+      headerLicense := Some(HeaderLicense.MIT("2022", "Carlos Verdes", HeaderLicenseStyle.SpdxSyntax)),
+      headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax))
     .dependsOn(velocypack)
+    .enablePlugins(AutomateHeaderPlugin)
 
 lazy val docker =
   project
     .in(file("arangodb-docker"))
     .configs(IntegrationTest)
     .settings(Defaults.itSettings)
+    .settings(headerSettings(Test, IntegrationTest))
     .settings(Seq(
       name := "arangodb-docker",
-      libraryDependencies ++= Seq(testContainers, logBack) ++ zioLibs ++ testLibs),
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
+      libraryDependencies ++= Seq(testContainers, logBack) ++ zioLibs ++ testLibs,
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+      headerLicense := Some(HeaderLicense.MIT("2022", "Carlos Verdes", HeaderLicenseStyle.SpdxSyntax)),
+      headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax))
     .dependsOn(arango)
+    .enablePlugins(AutomateHeaderPlugin)
 
 lazy val http =
   project
     .in(file("arangodb-http"))
     .configs(IntegrationTest)
     .settings(Defaults.itSettings)
+    .settings(headerSettings(Test, IntegrationTest))
     .settings(Seq(
       name := "zio-arangodb-http",
       libraryDependencies ++= commonLibs ++ zioLibs ++ testLibs,
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")),
-      coverageExcludedFiles := ".*Main.*;zio\\.json\\.*")
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+      coverageExcludedPackages := """io.funkode.arangodb.http.Main; io.funkode.*.autoDerive; zio.json.*;""",
+      headerLicense := Some(HeaderLicense.MIT("2022", "Carlos Verdes", HeaderLicenseStyle.SpdxSyntax)),
+      headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax))
     .dependsOn(arango, docker)
+    .enablePlugins(AutomateHeaderPlugin)
 
 ThisBuild / coverageExcludedFiles := ".*Main.*;zio\\.json\\.*"
 
@@ -85,4 +119,11 @@ addCommandAlias("ll", "projects")
 addCommandAlias("checkFmtAll", ";scalafmtSbtCheck;scalafmtCheckAll")
 addCommandAlias("testAll", ";compile;test;stryker")
 //addCommandAlias("sanity", ";compile;scalafmtAll;test;stryker")
-addCommandAlias("sanity", ";clean;coverage;compile;scalafixAll;scalafmtAll;test;it:test;coverageAggregate;coverageOff")
+addCommandAlias("sanity", ";clean;coverage;compile;headerCreate;scalafixAll;scalafmtAll;test;it:test;coverageAggregate;coverageOff")
+
+ThisBuild / publishMavenStyle := true
+ThisBuild / publishTo := {
+  val nexus = "https://s01.oss.sonatype.org/"
+  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+}

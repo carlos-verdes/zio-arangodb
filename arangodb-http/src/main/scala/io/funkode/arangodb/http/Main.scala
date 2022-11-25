@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Carlos Verdes
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package io.funkode.arangodb
 package http
 
@@ -14,7 +20,8 @@ object Main extends ZIOAppDefault:
   import io.funkode.arangodb.http.*
   import JsonCodecs.given
 
-  case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle) derives JsonCodec
+  case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle)
+  given JsonCodec[Rel] = DeriveJsonCodec.gen[Rel]
 
   val testDb = DatabaseName("test")
   val politics = GraphName("politics")
