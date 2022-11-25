@@ -1,3 +1,9 @@
+/*
+ * Copyright 2022 Carlos Verdes
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package io.funkode.arangodb.http
 
 import zio.json.{JsonCodec, JsonDecoder, JsonEncoder}

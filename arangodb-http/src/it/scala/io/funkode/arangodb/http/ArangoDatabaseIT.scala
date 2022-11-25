@@ -1,6 +1,9 @@
 /*
- * TODO: License goes here!
+ * Copyright 2022 Carlos Verdes
+ *
+ * SPDX-License-Identifier: MIT
  */
+
 package io.funkode.arangodb
 package http
 
@@ -13,6 +16,7 @@ import zio.stream.*
 import model.*
 import protocol.*
 import ArangoMessage.*
+import io.funkode.arangodb.http.Main.Rel
 
 trait ArangoExamples:
 
@@ -20,15 +24,17 @@ trait ArangoExamples:
   import VPack.*
   import VPackEncoder.given
 
-  case class Country(flag: String, name: String) derives JsonCodec
+  case class Country(flag: String, name: String)
+  case class Pet(name: String, age: Int)
+  case class PatchAge(_key: DocumentKey, age: Int)
+  case class PetWithKey(_key: DocumentKey, name: String, age: Int)
+  case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle)
 
-  case class Pet(name: String, age: Int) derives JsonCodec
-
-  case class PatchAge(_key: DocumentKey, age: Int) derives JsonCodec
-
-  case class PetWithKey(_key: DocumentKey, name: String, age: Int) derives JsonCodec
-
-  case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle) derives JsonCodec
+  given JsonCodec[Country] = DeriveJsonCodec.gen[Country]
+  given JsonCodec[Pet] = DeriveJsonCodec.gen[Pet]
+  given JsonCodec[PatchAge] = DeriveJsonCodec.gen[PatchAge]
+  given JsonCodec[PetWithKey] = DeriveJsonCodec.gen[PetWithKey]
+  given JsonCodec[Rel] = DeriveJsonCodec.gen[Rel]
 
   val testDatabaseName = DatabaseName("ittestdb")
   val testDatabase = DatabaseInfo(testDatabaseName.unwrap, testDatabaseName.unwrap, "", false)
