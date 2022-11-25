@@ -113,6 +113,14 @@ lazy val http =
     .dependsOn(arango, docker)
     .enablePlugins(AutomateHeaderPlugin)
 
+lazy val zioArangodb =
+  project
+    .in(file("."))
+    .aggregate(arango, http, docker, velocypack)
+    .settings(
+      publishArtifact := false,
+      publish / skip := true)
+
 ThisBuild / coverageExcludedFiles := ".*Main.*;zio\\.json\\.*"
 
 addCommandAlias("ll", "projects")
