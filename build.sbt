@@ -29,7 +29,6 @@ inThisBuild(
     publishTo := sonatypePublishToBundle.value,
     sonatypeCredentialHost :="s01.oss.sonatype.org",
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
-    //releasePublishArtifactsAction := PgpKeys.publishSigned.value,
     startYear := Some(2022),
     licenses += ("MIT", new URL("https://opensource.org/licenses/MIT")),
 ))
@@ -63,6 +62,7 @@ lazy val velocypack =
       name := "zio-velocypack",
       libraryDependencies ++= commonLibs ++ Seq(scodecCore) ++ zioLibs ++ testLibs,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")),
+      releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       headerLicense := Some(HeaderLicense.MIT("2022", "Carlos Verdes", HeaderLicenseStyle.SpdxSyntax)),
       headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax)
     .enablePlugins(AutomateHeaderPlugin)
@@ -77,6 +77,7 @@ lazy val arango =
       name := "zio-arangodb",
       libraryDependencies ++= commonLibs ++ zioLibs ++ testLibs,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+      releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       headerLicense := Some(HeaderLicense.MIT("2022", "Carlos Verdes", HeaderLicenseStyle.SpdxSyntax)),
       headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax))
     .dependsOn(velocypack)
@@ -92,6 +93,7 @@ lazy val docker =
       name := "arangodb-docker",
       libraryDependencies ++= Seq(testContainers, logBack) ++ zioLibs ++ testLibs,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+      releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       headerLicense := Some(HeaderLicense.MIT("2022", "Carlos Verdes", HeaderLicenseStyle.SpdxSyntax)),
       headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax))
     .dependsOn(arango)
@@ -108,6 +110,7 @@ lazy val http =
       libraryDependencies ++= commonLibs ++ zioLibs ++ testLibs,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
       coverageExcludedPackages := """io.funkode.arangodb.http.Main; io.funkode.*.autoDerive; zio.json.*;""",
+      releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       headerLicense := Some(HeaderLicense.MIT("2022", "Carlos Verdes", HeaderLicenseStyle.SpdxSyntax)),
       headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax))
     .dependsOn(arango, docker)
