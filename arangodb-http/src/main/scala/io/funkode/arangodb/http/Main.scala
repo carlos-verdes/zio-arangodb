@@ -28,6 +28,8 @@ object Main extends ZIOAppDefault:
 
   def app =
     for
+      serverInfo <- ArangoClientJson.serverInfo().version()
+      _ <- printLine(s"""Working with arango server"${serverInfo.server}: ${serverInfo.version}""")
       db <- ArangoClientJson.database(testDb).createIfNotExist()
       dbInfo <- db.info
       _ <- printLine(s"""Working with database "${dbInfo.name}" (id: ${dbInfo.id})""")

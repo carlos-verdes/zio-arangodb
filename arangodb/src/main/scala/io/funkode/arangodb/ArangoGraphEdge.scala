@@ -8,19 +8,19 @@ import protocol.*
 import ArangoMessage.*
 
 class ArangoGraphEdge[Encoder[_], Decoder[_]](
-  database: DatabaseName,
-  graph: GraphName,
-  documentHandle: DocumentHandle
+    database: DatabaseName,
+    graph: GraphName,
+    documentHandle: DocumentHandle
 )(using
-  arangoClient: ArangoClient[Encoder, Decoder]
+    arangoClient: ArangoClient[Encoder, Decoder]
 ):
   def handle: DocumentHandle = documentHandle
 
   private val path = ApiGharialPath.addPart(graph.unwrap).addPart("edge").addParts(handle.path.parts)
 
   def read[T: Decoder](
-    ifNoneMatch: Option[String] = None,
-    ifMatch: Option[String] = None
+      ifNoneMatch: Option[String] = None,
+      ifMatch: Option[String] = None
   )(using Decoder[ArangoResult[GraphEdge[T]]]): AIO[T] =
     GET(
       database,

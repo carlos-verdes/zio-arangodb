@@ -8,11 +8,11 @@ import protocol.*
 import ArangoMessage.*
 
 class ArangoGraphVertex[Encoder[_], Decoder[_]](
-  database: DatabaseName,
-  graph: GraphName,
-  documentHandle: DocumentHandle
+    database: DatabaseName,
+    graph: GraphName,
+    documentHandle: DocumentHandle
 )(using
-  arangoClient: ArangoClient[Encoder, Decoder]
+    arangoClient: ArangoClient[Encoder, Decoder]
 ):
 
   def handle: DocumentHandle = documentHandle
@@ -20,8 +20,8 @@ class ArangoGraphVertex[Encoder[_], Decoder[_]](
   private val path = ApiGharialPath.addPart(graph.unwrap).addPart("vertex").addParts(handle.path.parts)
 
   def read[T: Decoder](
-    ifNoneMatch: Option[String] = None,
-    ifMatch: Option[String] = None
+      ifNoneMatch: Option[String] = None,
+      ifMatch: Option[String] = None
   )(using Decoder[ArangoResult[GraphVertex[T]]]): AIO[T] =
     GET(
       database,
@@ -32,4 +32,3 @@ class ArangoGraphVertex[Encoder[_], Decoder[_]](
       ).collectDefined
     ).executeIgnoreResult[GraphVertex[T], Encoder, Decoder]
       .map(_.vertex)
-
