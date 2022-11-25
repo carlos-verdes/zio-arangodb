@@ -10,7 +10,7 @@ import ArangoMessage.*
 import VPack.*
 
 class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: GraphName)(using
-  arangoClient: ArangoClient[Encoder, Decoder]
+    arangoClient: ArangoClient[Encoder, Decoder]
 ):
 
   def name: GraphName = graphName
@@ -19,9 +19,9 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
   private val vertexPath = path.addPart("vertex")
 
   def create(
-    edgeDefinitions: List[GraphEdgeDefinition] = List.empty,
-    orphanCollections: List[String] = List.empty,
-    waitForSync: Boolean = false
+      edgeDefinitions: List[GraphEdgeDefinition] = List.empty,
+      orphanCollections: List[String] = List.empty,
+      waitForSync: Boolean = false
   )(using Encoder[GraphCreate], Decoder[GraphInfo.Response]): AIO[GraphInfo] =
     POST(
       database,
@@ -40,7 +40,7 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
       .map(_.graph)
 
   def drop(dropCollections: Boolean = false)(using
-    Decoder[ArangoResult[RemovedResult]]
+      Decoder[ArangoResult[RemovedResult]]
   ): AIO[Boolean] =
     DELETE(database, path, Map("dropCollections" -> dropCollections.toString))
       .executeIgnoreResult[RemovedResult, Encoder, Decoder]
@@ -52,7 +52,7 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
       .map(_.collections)
 
   def addVertexCollection(
-    collection: CollectionName
+      collection: CollectionName
   )(using Encoder[VertexCollectionCreate], Decoder[ArangoResult[GraphInfo.Response]]): AIO[GraphInfo] =
     POST(database, vertexPath)
       .withBody(VertexCollectionCreate(collection))
@@ -60,8 +60,8 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
       .map(_.graph)
 
   def removeVertexCollection(
-    collection: CollectionName,
-    dropCollection: Boolean = false
+      collection: CollectionName,
+      dropCollection: Boolean = false
   )(using Decoder[ArangoResult[GraphInfo.Response]]): AIO[GraphInfo] =
     DELETE(
       database,

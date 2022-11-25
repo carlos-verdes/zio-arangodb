@@ -76,10 +76,10 @@ lazy val http =
       name := "zio-arangodb-http",
       libraryDependencies ++= commonLibs ++ zioLibs ++ testLibs,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")),
-      coverageExcludedPackages := "<empty>;.*Main.*;zio\\.json\\.*")
+      coverageExcludedFiles := ".*Main.*;zio\\.json\\.*")
     .dependsOn(arango, docker)
 
-ThisBuild / coverageExcludedPackages := "<empty>;.*Main.*;zio\\.json\\.*"
+ThisBuild / coverageExcludedFiles := ".*Main.*;zio\\.json\\.*"
 
 addCommandAlias("ll", "projects")
 addCommandAlias("checkFmtAll", ";scalafmtSbtCheck;scalafmtCheckAll")
