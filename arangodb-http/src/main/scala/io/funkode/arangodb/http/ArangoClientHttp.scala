@@ -18,6 +18,8 @@ import zio.http.model.Headers.BearerSchemeName
 import zio.http.model.Status.*
 import zio.json.*
 import zio.prelude.*
+import zio.schema.*
+import zio.schema.codec.*
 
 import io.funkode.arangodb.docker.*
 import io.funkode.arangodb.model.*
@@ -30,6 +32,14 @@ type ArangoCollectionJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type ArangoDocumentsJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type ArangoGraphJson = ArangoGraph[JsonEncoder, JsonDecoder]
 type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
+
+type ArangoClientSchema = ArangoClient[Schema, Schema]
+type ArangoServerSchema = ArangoServer[Schema, Schema]
+type ArangoDatabaseSchema = ArangoDatabase[Schema, Schema]
+type ArangoCollectionSchema = ArangoCollection[Schema, Schema]
+type ArangoDocumentsSchema = ArangoCollection[Schema, Schema]
+type ArangoGraphSchema = ArangoGraph[Schema, Schema]
+type WithSchemaClient[O] = WithClient[Schema, Schema, O]
 
 trait HttpEncoder[Encoder[_]]:
   def encode[R](r: R)(using Encoder[R]): Body
@@ -220,6 +230,51 @@ object extensions:
             ArangoMessage.error(Status.InternalServerError.code, RuntimeError + t.getMessage.getOrEmpty)
           )
       }
+
+object ArangoClientSchema:
+  import SchemaCodecs.given
+
+  val schemaEncoderForHttp: HttpEncoder[Schema] = new HttpEncoder[Schema] :
+    override def encode[R](r: R)(using S: Schema[R]) =
+      Body.fromChunk(zio.schema.codec.JsonCodec.Encoder.encode(S, r))
+
+  val schemaDecoderForHttp: HttpDecoder[Schema] = new HttpDecoder[Schema] :
+    override def decode[R](body: Body)(using S: Schema[R]): AIO[R] =
+      body.asString
+        .catchAll { case t: Throwable =>
+          ZIO.fail(ArangoError(500, true, "Error getting body from Arango response" + t.getMessage, -1))
+        }
+        .flatMap(s => ZIO.fromEither(zio.schema.codec.JsonCodec.Decoder.decode(S, s)))
+        .catchAll { case error: String =>
+          ZIO.fail(ArangoError(500, true, "Error parsing JSON Arango response" + error, -1))
+        }
+
+  def arangoClientSchema(
+    config: ArangoConfiguration,
+    httpClient: Client,
+    token: Option[Token] = None
+  ): ArangoClientSchema =
+    new ArangoClientHttp[Schema, Schema](
+      config,
+      httpClient,
+      token
+    )(
+      using schemaEncoderForHttp,
+      schemaDecoderForHttp,
+      given_Schema_Token,
+      given_Schema_Token,
+      given_Schema_UserPassword,
+      given_Schema_UserPassword,
+      given_Schema_ArangoError
+    )
+
+  val live: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientSchema] =
+    ZLayer(for
+      config <- ZIO.service[ArangoConfiguration]
+      httpClient <- ZIO.service[Client]
+      token <- arangoClientSchema(config, httpClient).login(config.username, config.password)
+      arangoClient = arangoClientSchema(config, httpClient, Some(token))
+    yield arangoClient)
 
 object ArangoClientJson:
 
