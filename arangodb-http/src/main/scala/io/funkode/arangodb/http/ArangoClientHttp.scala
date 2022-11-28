@@ -20,8 +20,8 @@ import zio.json.*
 import zio.prelude.*
 import zio.schema.*
 import zio.schema.codec.*
-
 import io.funkode.arangodb.docker.*
+import io.funkode.arangodb.http.ArangoClientJson.arangoClientJson
 import io.funkode.arangodb.model.*
 import io.funkode.arangodb.protocol.*
 
@@ -232,7 +232,33 @@ object extensions:
       }
 
 object ArangoClientSchema:
+
   import SchemaCodecs.given
+
+  def withClient[O](
+    f: ArangoClient[Schema, Schema] => O
+  ): WithSchemaClient[O] =
+    ZIO.service[ArangoClientSchema].map(f)
+
+  def serverInfo(): WithSchemaClient[ArangoServerSchema] =
+    withClient(_.serverInfo)
+
+  def database(
+    name: DatabaseName
+  ): WithSchemaClient[ArangoDatabaseSchema] =
+    withClient(_.database(name))
+
+  def system: WithSchemaClient[ArangoDatabaseSchema] =
+    withClient(_.system)
+
+  def db: WithSchemaClient[ArangoDatabaseSchema] =
+    withClient(_.db)
+
+  def collection(collectionName: CollectionName): WithSchemaClient[ArangoCollectionSchema] =
+    withClient(_.collection(collectionName))
+
+  def graph(graphName: GraphName): WithSchemaClient[ArangoGraphSchema] =
+    withClient(_.graph(graphName))
 
   val schemaEncoderForHttp: HttpEncoder[Schema] = new HttpEncoder[Schema] :
     override def encode[R](r: R)(using S: Schema[R]) =
@@ -275,6 +301,20 @@ object ArangoClientSchema:
       token <- arangoClientSchema(config, httpClient).login(config.username, config.password)
       arangoClient = arangoClientSchema(config, httpClient, Some(token))
     yield arangoClient)
+
+  val testContainers: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientSchema & ArangoContainer] =
+    ZLayer.scopedEnvironment(
+      for
+        aconfig <- ZIO.service[ArangoConfiguration]
+        container <- ArangoContainer.makeScopedContainer(aconfig)
+        newConfig = aconfig.copy(
+          port = container.container.getFirstMappedPort.nn,
+          host = container.container.getHost.nn
+        )
+        httpClient <- ZIO.service[Client]
+        token <- arangoClientSchema(newConfig, httpClient).login(newConfig.username, newConfig.password)
+      yield ZEnvironment(arangoClientSchema(newConfig, httpClient, Some(token)), container)
+    )
 
 object ArangoClientJson:
 

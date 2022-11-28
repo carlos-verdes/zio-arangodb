@@ -8,8 +8,9 @@ package io.funkode.arangodb
 package http
 
 import zio.schema.*
-import io.funkode.velocypack.*
+import io.funkode.velocypack.{VPack, *}
 import zio.Chunk
+import zio.schema.Schema.CaseClass1
 
 object SchemaCodecs:
 
@@ -17,8 +18,18 @@ object SchemaCodecs:
   import VPack.*
 
   given Schema[ArangoError] = DeriveSchema.gen[ArangoError]
-  /*
-  given arangoResult[?]: Schema[ArangoResult[?]] = DeriveSchema.gen[ArangoResult[?]]
+
+  given arangoResultSchema[O](using S: Schema[O]): Schema[ArangoResult[O]] =
+    Schema.CaseClass3[Boolean, Int, O, ArangoResult[O]](
+      TypeId.parse("io.funkode.arangodb.model.ArangoResult"),
+      Schema.Field("error", Schema[Boolean]),
+      Schema.Field("code", Schema[Int]),
+      Schema.Field("result", S),
+      (error: Boolean, code: Int, result: O) => ArangoResult(error, code, result),
+      _.error,
+      _.code,
+      _.result
+    )
 
   given Schema[CollectionChecksum] = DeriveSchema.gen[CollectionChecksum]
   given Schema[CollectionCount] = DeriveSchema.gen[CollectionCount]
@@ -27,27 +38,92 @@ object SchemaCodecs:
   given Schema[CollectionInfo] = DeriveSchema.gen[CollectionInfo]
   given Schema[QueryResults.Extra] = DeriveSchema.gen[QueryResults.Extra]
   given Schema[QueryResults.ExtraStats] = DeriveSchema.gen[QueryResults.ExtraStats]
-  given cursor[O](using Schema[O]): Schema[QueryResults[O]] = DeriveSchema.gen[QueryResults[O]]
+  given queryResultsSchema[O](using S: Schema[O]): Schema[QueryResults[O]] =
+    Schema.CaseClass6[Boolean, Option[Long], Option[QueryResults.Extra], Boolean, Option[String], List[
+      O
+    ], QueryResults[O]](
+      TypeId.parse("io.funkode.arangodb.model.QueryResults"),
+      Schema.Field("cached", Schema[Boolean]),
+      Schema.Field("count", Schema[Option[Long]]),
+      Schema.Field("extra", Schema[Option[QueryResults.Extra]]),
+      Schema.Field("hasMore", Schema[Boolean]),
+      Schema.Field("id", Schema[Option[String]]),
+      Schema.Field("result", Schema[List[O]]),
+      (
+          cached: Boolean,
+          count: Option[Long],
+          extra: Option[QueryResults.Extra],
+          hasMore: Boolean,
+          id: Option[String],
+          result: List[O]
+      ) => QueryResults(cached, count, extra, hasMore, id, result),
+      _.cached,
+      _.count,
+      _.extra,
+      _.hasMore,
+      _.id,
+      _.result
+    )
+
   given Schema[DatabaseCreate.User] = DeriveSchema.gen[DatabaseCreate.User]
   given Schema[DatabaseCreate] = DeriveSchema.gen[DatabaseCreate]
   given Schema[DatabaseInfo] = DeriveSchema.gen[DatabaseInfo]
   given Schema[DeleteResult] = DeriveSchema.gen[DeleteResult]
   given Schema[GraphCollections] = DeriveSchema.gen[GraphCollections]
   given Schema[GraphCreate] = DeriveSchema.gen[GraphCreate]
-  given edge[T](using Schema[T]): Schema[GraphEdge[T]] = DeriveSchema.gen[GraphEdge[T]]
+  given edge[T](using S: Schema[T]): Schema[GraphEdge[T]] =
+    Schema.CaseClass1[T, GraphEdge[T]](
+      TypeId.parse("io.funkode.arangodb.model.GraphEdge"),
+      Schema.Field("edge", S),
+      (edge: T) => GraphEdge(edge),
+      _.edge
+    )
+
   given Schema[GraphEdgeDefinition] = DeriveSchema.gen[GraphEdgeDefinition]
   given Schema[GraphInfo] = DeriveSchema.gen[GraphInfo]
   given Schema[GraphInfo.Response] = DeriveSchema.gen[GraphInfo.Response]
   given Schema[GraphList] = DeriveSchema.gen[GraphList]
-  given vertex[T](using Schema[T]): Schema[GraphVertex[T]] = DeriveSchema.gen[GraphVertex[T]]
-  given doc[T: Schema]: Schema[Document[T]] = DeriveSchema.gen[Document[T]]
+  given vertex[T](using S: Schema[T]): Schema[GraphVertex[T]] =
+    Schema.CaseClass1[T, GraphVertex[T]](
+      TypeId.parse("io.funkode.arangodb.model.GraphVertex"),
+      Schema.Field("vertex", S),
+      (vertex: T) => GraphVertex(vertex),
+      _.vertex
+    )
+
+  given doc[T: Schema](using S: Schema[T]): Schema[Document[T]] =
+    Schema.CaseClass6[DocumentHandle, DocumentKey, DocumentRevision, Option[T], Option[T], Option[
+      DocumentRevision
+    ], Document[T]](
+      TypeId.parse("io.funkode.arangodb.model.Document"),
+      Schema.Field("_id", Schema[DocumentHandle]),
+      Schema.Field("_key", Schema[DocumentKey]),
+      Schema.Field("_rev", Schema[DocumentRevision]),
+      Schema.Field("`new`", Schema.Optional(S)),
+      Schema.Field("old", Schema.Optional(S)),
+      Schema.Field("_oldRev", Schema[Option[DocumentRevision]]),
+      (
+          _id: DocumentHandle,
+          _key: DocumentKey,
+          _rev: DocumentRevision,
+          `new`: Option[T],
+          old: Option[T],
+          _oldRev: Option[DocumentRevision]
+      ) => Document(_id, _key, _rev, `new`, old, _oldRev),
+      _._id,
+      _._key,
+      _._rev,
+      _.`new`,
+      _.old,
+      _._oldRev
+    )
+
   given Schema[Query.Options] = DeriveSchema.gen[Query.Options]
-  given Schema[Query] = DeriveSchema.gen[Query]
+//  given Schema[Query] = DeriveSchema.gen[Query]
+
   given Schema[ServerVersion] = DeriveSchema.gen[ServerVersion]
-  */
   given Schema[Token] = DeriveSchema.gen[Token]
   given Schema[UserPassword] = DeriveSchema.gen[UserPassword]
-/*
   // opaque string based types
   given Schema[DatabaseName] = DeriveOpaqueTypeSchema.gen(DatabaseName.apply, DatabaseName.unwrap)
   given Schema[CollectionName] = DeriveOpaqueTypeSchema.gen(CollectionName.apply, CollectionName.unwrap)
@@ -59,19 +135,47 @@ object SchemaCodecs:
 
   // enum based types
   given Schema[CollectionType] =
-  DeriveOpaqueTypeSchema.gen(CollectionType.fromOrdinal, CollectionType.ordinal)
+    DeriveOpaqueTypeSchema.gen(CollectionType.fromOrdinal, CollectionType.ordinal)
   given Schema[CollectionStatus] =
     DeriveOpaqueTypeSchema.gen(CollectionStatus.fromOrdinal, CollectionStatus.ordinal)
 
   // special types
   given Schema[DocumentHandle] =
-  DeriveOpaqueTypeSchema.gen((s: String) => DocumentHandle.parse(s).get, DocumentHandle.unwrap)
+    DeriveOpaqueTypeSchema.gen((s: String) => DocumentHandle.parse(s).get, DocumentHandle.unwrap)
 
-  given vobjectEncoder: Schema[VObject] = Schema[Map[String, VPack]].contramap(_.values)
+// given Schema[VNone | VNone | VNull | VIllegal]
 
-  given vpackEncoder: Schema[VPack] = zio.schema.DeriveSchema
+//  given vobjectEncoder: Schema[VObject] =
+//    DeriveSchema.gen[VObject] // Schema[Map[String, VPack]].contramap(_.values)
 
-    (vpack: VPack, indent: Option[Int], out: Write) =>
+  import VPack.*
+
+  given vbooleanSchema: Schema[VBoolean] =
+    CaseClass1[Boolean, VPack.VBoolean](
+      TypeId.parse("io.funkode.velocypack.VPack.VBoolean"),
+      Schema.Field[Boolean]("value", Schema[Boolean]),
+      (b: Boolean) => VPack.VBoolean(b),
+      _.value
+    )
+
+  given vpackSchema: Schema[VPack] = Schema.Enum1(
+    TypeId.parse("io.funkode.velocypack.VPack"),
+    /*
+    Schema.Case[VPack.VNone, VPack](
+      "VNone",
+      Schema.singleton(VPack.VNone),
+      _.asInstanceOf[VPack.VNone],
+      Chunk.empty
+    ),*/
+    Schema.Case[VPack.VBoolean, VPack](
+      "VBoolean",
+      vbooleanSchema,
+      _.asInstanceOf[VPack.VBoolean],
+      Chunk.empty
+    )
+  )
+
+/*
     vpack match
       case VNone | VNone | VNull | VIllegal => JsonEncoder[String].unsafeEncode(null, indent, out)
       case VBoolean(value)                  => JsonEncoder[Boolean].unsafeEncode(value, indent, out)
@@ -108,4 +212,4 @@ object SchemaCodecs:
   given Schema[VPack] = Schema(vpackEncoder, vpackDecoder)
   given Schema[VObject] = Schema(vobjectEncoder, vobjectDecoder)
 
-*/
+ */

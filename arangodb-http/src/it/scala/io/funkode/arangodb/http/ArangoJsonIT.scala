@@ -74,7 +74,7 @@ trait ArangoExamples:
   val expectedAllies =
     List(Country("\uD83C\uDDEB\uD83C\uDDF7", "France"), Country("\uD83C\uDDFA\uD83C\uDDF8", "United States"))
 
-object ArangoDatabaseIT extends ZIOSpecDefault with ArangoExamples:
+object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
 
   import JsonCodecs.given
   import VPack.*

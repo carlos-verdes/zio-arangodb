@@ -28,7 +28,8 @@ object JsonCodecs:
   given JsonCodec[CollectionInfo] = DeriveJsonCodec.gen[CollectionInfo]
   given JsonCodec[QueryResults.Extra] = DeriveJsonCodec.gen[QueryResults.Extra]
   given JsonCodec[QueryResults.ExtraStats] = DeriveJsonCodec.gen[QueryResults.ExtraStats]
-  given cursor[O](using JsonCodec[O]): JsonCodec[QueryResults[O]] = DeriveJsonCodec.gen[QueryResults[O]]
+  given queryResultsJsonCodec[O](using JsonCodec[O]): JsonCodec[QueryResults[O]] =
+    DeriveJsonCodec.gen[QueryResults[O]]
   given JsonCodec[DatabaseCreate.User] = DeriveJsonCodec.gen[DatabaseCreate.User]
   given JsonCodec[DatabaseCreate] = DeriveJsonCodec.gen[DatabaseCreate]
   given JsonCodec[DatabaseInfo] = DeriveJsonCodec.gen[DatabaseInfo]
@@ -71,18 +72,18 @@ object JsonCodecs:
 
   given vpackEncoder: JsonEncoder[VPack] = (vpack: VPack, indent: Option[Int], out: Write) =>
     vpack match
-      case VNone | VNone | VNull | VIllegal => JsonEncoder[String].unsafeEncode(null, indent, out)
-      case VBoolean(value)                  => JsonEncoder[Boolean].unsafeEncode(value, indent, out)
-      case VTrue                            => JsonEncoder[Boolean].unsafeEncode(true, indent, out)
-      case VFalse                           => JsonEncoder[Boolean].unsafeEncode(false, indent, out)
-      case VDouble(value)                   => JsonEncoder[Double].unsafeEncode(value, indent, out)
-      case VDate(value)                     => JsonEncoder[Long].unsafeEncode(value, indent, out)
-      case VSmallint(value)                 => JsonEncoder[Int].unsafeEncode(value, indent, out)
-      case VLong(value)                     => JsonEncoder[Long].unsafeEncode(value, indent, out)
-      case VString(value)                   => JsonEncoder[String].unsafeEncode(value, indent, out)
-      case VBinary(value)                   => JsonEncoder[String].unsafeEncode(value.toBase64, indent, out)
-      case VArray(values) => JsonEncoder[Array[VPack]].unsafeEncode(values.toArray, indent, out)
-      case obj: VObject   => JsonEncoder[VObject].unsafeEncode(obj, indent, out)
+      case VNone | VNull | VIllegal => JsonEncoder[String].unsafeEncode(null, indent, out)
+      case VBoolean(value)          => JsonEncoder[Boolean].unsafeEncode(value, indent, out)
+      case VTrue                    => JsonEncoder[Boolean].unsafeEncode(true, indent, out)
+      case VFalse                   => JsonEncoder[Boolean].unsafeEncode(false, indent, out)
+      case VDouble(value)           => JsonEncoder[Double].unsafeEncode(value, indent, out)
+      case VDate(value)             => JsonEncoder[Long].unsafeEncode(value, indent, out)
+      case VSmallint(value)         => JsonEncoder[Int].unsafeEncode(value, indent, out)
+      case VLong(value)             => JsonEncoder[Long].unsafeEncode(value, indent, out)
+      case VString(value)           => JsonEncoder[String].unsafeEncode(value, indent, out)
+      case VBinary(value)           => JsonEncoder[String].unsafeEncode(value.toBase64, indent, out)
+      case VArray(values)           => JsonEncoder[Array[VPack]].unsafeEncode(values.toArray, indent, out)
+      case obj: VObject             => JsonEncoder[VObject].unsafeEncode(obj, indent, out)
 
   def jsonObjectToVObject(jsonObject: Json.Obj): VObject =
     VObject(jsonObject.fields.map((key, value) => (key, jsonToVpack(value))).toList*)
