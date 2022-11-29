@@ -85,8 +85,9 @@ object JsonCodecs:
       case VArray(values)           => JsonEncoder[Array[VPack]].unsafeEncode(values.toArray, indent, out)
       case obj: VObject             => JsonEncoder[VObject].unsafeEncode(obj, indent, out)
 
-  def jsonObjectToVObject(jsonObject: Json.Obj): VObject =
-    VObject(jsonObject.fields.map((key, value) => (key, jsonToVpack(value))).toList*)
+  def jsonObjectToVObject(jsonObject: Json.Obj): VObject = VObject(
+    jsonObject.fields.map((key, value) => (key, jsonToVpack(value))).toList*
+  )
 
   def jsonToVpack(json: Json): VPack = json match
     case obj: Json.Obj      => jsonObjectToVObject(obj)

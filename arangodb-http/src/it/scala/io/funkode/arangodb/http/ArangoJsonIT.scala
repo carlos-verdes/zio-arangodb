@@ -85,8 +85,12 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
       test("Get server info") {
         for
           serverVersion <- ArangoClientJson.serverInfo().version()
+          serverVersionFull <- ArangoClientJson.serverInfo().version(true)
           databases <- ArangoClientJson.serverInfo().databases
         yield assertTrue(serverVersion == ServerVersion("arango", "community", "3.7.15")) &&
+          assertTrue(serverVersionFull.version == "3.7.15") &&
+          assertTrue(serverVersionFull.details.get("architecture") == Some("64bit")) &&
+          assertTrue(serverVersionFull.details.get("mode") == Some("server")) &&
           assertTrue(Set(DatabaseName.system, DatabaseName("test")).subsetOf(databases.toSet))
       },
       test("Create and drop a database") {
@@ -125,13 +129,13 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           deletedDocs <- documents.remove[Pet, DocumentKey](List(inserted1._key), true)
           countAfterDelete <- documents.count()
           _ <- ArangoClientJson.collection(petsCollection).drop()
-        yield assertTrue(inserted1.`new`.get == pet1) &&
-          assertTrue(inserted2.`new`.get == pet2) &&
+        yield assertTrue(inserted1.`new` == Some(pet1)) &&
+          assertTrue(inserted2.`new` == Some(pet2)) &&
           assertTrue(insertedCount == 2L) &&
-          assertTrue(created.map(_.`new`.get) == morePets) &&
+          assertTrue(created.map(_.`new`) == morePets.map(Some(_))) &&
           assertTrue(countAfterCreated == 4L) &&
           assertTrue(updatedDocs.length == 1) &&
-          assertTrue(updatedDocs.head.`new`.get == updatedPet2) &&
+          assertTrue(updatedDocs.head.`new` == Some(updatedPet2)) &&
           assertTrue(countAfterUpdate == 4L) &&
           assertTrue(deletedDocs.length == 1) &&
           assertTrue(deletedDocs.head._key == inserted1._key) &&

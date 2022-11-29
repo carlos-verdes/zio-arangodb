@@ -89,7 +89,8 @@ object VPackEncoder:
 
   given VPackEncoder[UUID] = byteVectorEncoder.contramap(ByteVector.fromUUID)
 
-  given optionEncoder[T](using e: VPackEncoder[T]): VPackEncoder[Option[T]] = _.fold[VPack](VNull)(e.encode)
+  given optionEncoder[T](using e: VPackEncoder[T]): VPackEncoder[Option[T]] =
+    _.fold[VPack](VNull)(e.encode)
   given vectorEncoder[T](using e: VPackEncoder[T]): VPackEncoder[Vector[T]] = a =>
     VArray(a.toList.map(e.encode))
 

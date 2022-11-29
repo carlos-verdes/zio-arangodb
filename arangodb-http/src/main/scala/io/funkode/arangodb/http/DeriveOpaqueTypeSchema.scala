@@ -15,4 +15,3 @@ object DeriveOpaqueTypeSchema:
 
   def createOpaqueSchema[T, S](create: S => T, unwrap: T => S)(using S: Schema[S]) =
     S.transform(create, unwrap)
-

@@ -11,6 +11,7 @@ import io.lemonlabs.uri.typesafe.dsl.*
 import zio.*
 
 import io.funkode.arangodb.protocol.ArangoMessage.{GET, POST}
+import io.funkode.velocypack.VPack
 import io.funkode.velocypack.VPack.*
 import model.*
 import protocol.*

@@ -11,6 +11,23 @@ ArangoDB supports 3 type of API's:
 This library is built on top of ZIO and is designed in a way it can (potentially) implement all protocols.
 Current version supports JSON over HTTP only using zio-http as underlying client.
 
+> Experimental: trying to support zio-schema, instead of using JSON encoder/decoder you would be able to use any type that has the typeclass Schema
+
+
+Install:
+```scala
+import sbt._
+
+object Dependencies {
+  val zioArangoV = "0.0.3"
+}
+
+object Libraries {
+
+  val zioArangoHttp   = "io.funkode" %% "zio-arangodb-http"   % zioArangoV
+}
+```
+
 Example of usage:
 ```scala
 

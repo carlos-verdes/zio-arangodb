@@ -13,6 +13,7 @@ object Dependencies {
     val zioConfTypesafeV = "3.0.2"
     val zioCryptoV = "0.0.1"
     val zioPreludeV = "1.0.0-RC16"
+    val zioSchemaV = "0.3.1"
 
     val logBackV = "1.4.0"
     val scalaUriV = "4.0.2"
@@ -24,18 +25,21 @@ object Dependencies {
 
     import Versions._
 
-    val zio             = "dev.zio" %% "zio"                 % zioV
-    val zioConcurrent   = "dev.zio" %% "zio-concurrent"      % zioV
-    val zioConfMagnolia = "dev.zio" %% "zio-config-magnolia" % zioConfMagnoliaV
-    val zioConfTypesafe = "dev.zio" %% "zio-config-typesafe" % zioConfTypesafeV
-    val zioCrypto       = "dev.zio" %% "zio-crypto"          % zioCryptoV
-    val zioHttp         = "dev.zio" %% "zio-http"            % zioHttpV
-    val zioJson         = "dev.zio" %% "zio-json"            % zioJsonV
-    val zioJGolden      = "dev.zio" %% "zio-json-golden"     % zioJsonV
-    val zioPrelude      = "dev.zio" %% "zio-prelude"         % zioPreludeV
-    val zioStreams      = "dev.zio" %% "zio-streams"         % zioV
-    val zioTest         = "dev.zio" %% "zio-test"            % zioV
-    val zioTestSbt      = "dev.zio" %% "zio-test-sbt"        % zioV
+    val zio             = "dev.zio" %% "zio"                   % zioV
+    val zioConcurrent   = "dev.zio" %% "zio-concurrent"        % zioV
+    val zioConfMagnolia = "dev.zio" %% "zio-config-magnolia"   % zioConfMagnoliaV
+    val zioConfTypesafe = "dev.zio" %% "zio-config-typesafe"   % zioConfTypesafeV
+    val zioCrypto       = "dev.zio" %% "zio-crypto"            % zioCryptoV
+    val zioHttp         = "dev.zio" %% "zio-http"              % zioHttpV
+    val zioJson         = "dev.zio" %% "zio-json"              % zioJsonV
+    val zioJGolden      = "dev.zio" %% "zio-json-golden"       % zioJsonV
+    val zioPrelude      = "dev.zio" %% "zio-prelude"           % zioPreludeV
+    val zioSchema       = "dev.zio" %% "zio-schema"            % zioSchemaV
+    val zioSchemaJson   = "dev.zio" %% "zio-schema-json"       % zioSchemaV
+    val zioSchemaDeriv  = "dev.zio" %% "zio-schema-derivation" % zioSchemaV
+    val zioStreams      = "dev.zio" %% "zio-streams"           % zioV
+    val zioTest         = "dev.zio" %% "zio-test"              % zioV
+    val zioTestSbt      = "dev.zio" %% "zio-test-sbt"          % zioV
 
     val logBack        = "ch.qos.logback"       % "logback-classic"            % logBackV
     val jansi          = "org.fusesource.jansi" % "jansi"                      % "1.11"
