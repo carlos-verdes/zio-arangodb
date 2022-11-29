@@ -49,7 +49,8 @@ ThisBuild / scalacOptions ++=
 
 
 lazy val commonLibs = Seq(scalaUri, logBack, zioPrelude, jansi, zioConfMagnolia, zioConfTypesafe)
-lazy val zioLibs = Seq(zio, zioHttp, zioJson, zioConcurrent, zioConfMagnolia, zioConfTypesafe)
+lazy val zioSchemaLibs = Seq(zioSchemaJson, zioSchemaDeriv)
+lazy val zioLibs = Seq(zio, zioHttp, zioJson, zioConcurrent, zioConfMagnolia, zioConfTypesafe) ++ zioSchemaLibs
 lazy val testLibs = Seq(zioTest, zioTestSbt, zioJGolden).map(_ % "it, test")
 
 lazy val velocypack =

@@ -30,7 +30,8 @@ object Query:
       import VPack.*
       import VObject.updated
 
-      val newBindVars = q.bindVars.map(_.updated(key, value)).getOrElse(VObject(key -> value))
+      val newBindVars: VPack.VObject =
+        q.bindVars.map(_.updated(key, value)).getOrElse(VObject(Map(key -> value)))
       q.copy(bindVars = Some(newBindVars))
 
   final case class Options(

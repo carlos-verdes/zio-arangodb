@@ -18,8 +18,11 @@ import zio.http.model.Headers.BearerSchemeName
 import zio.http.model.Status.*
 import zio.json.*
 import zio.prelude.*
+import zio.schema.*
+import zio.schema.codec.*
 
 import io.funkode.arangodb.docker.*
+import io.funkode.arangodb.http.ArangoClientJson.arangoClientJson
 import io.funkode.arangodb.model.*
 import io.funkode.arangodb.protocol.*
 
@@ -30,6 +33,14 @@ type ArangoCollectionJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type ArangoDocumentsJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type ArangoGraphJson = ArangoGraph[JsonEncoder, JsonDecoder]
 type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
+
+type ArangoClientSchema = ArangoClient[Schema, Schema]
+type ArangoServerSchema = ArangoServer[Schema, Schema]
+type ArangoDatabaseSchema = ArangoDatabase[Schema, Schema]
+type ArangoCollectionSchema = ArangoCollection[Schema, Schema]
+type ArangoDocumentsSchema = ArangoCollection[Schema, Schema]
+type ArangoGraphSchema = ArangoGraph[Schema, Schema]
+type WithSchemaClient[O] = WithClient[Schema, Schema, O]
 
 trait HttpEncoder[Encoder[_]]:
   def encode[R](r: R)(using Encoder[R]): Body
@@ -77,10 +88,20 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
   def command[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
 
     val header = message.header.emptyRequest(BaseUrl, headers)
-    val request = header.copy(body = httpEncoder.encode(message.body))
+    val request: Request = header.copy(body = httpEncoder.encode(message.body))
     for
       response <- httpClient.request(request).handleErrors
-      body <- parseResponseBody(response)
+      body <- parseResponseBody(response).catchAll { case e: ArangoError =>
+        for
+          bodyString <- request.body.asString.catchAll(e =>
+            ZIO.succeed(s"[error reading body: ${e.getMessage}]")
+          )
+          _ <- ZIO.logError(s"HTTP Command error")
+          _ <- ZIO.logError(s"Request: ${request.method} ${request.url.path}")
+          _ <- ZIO.logError(bodyString)
+          error <- ZIO.fail(e)
+        yield error
+      }
     yield ArangoMessage(response, body)
 
   def login(username: String, password: String): AIO[Token] =
@@ -221,6 +242,97 @@ object extensions:
           )
       }
 
+object ArangoClientSchema:
+
+  import SchemaCodecs.given
+
+  def withClient[O](
+      f: ArangoClient[Schema, Schema] => O
+  ): WithSchemaClient[O] =
+    ZIO.service[ArangoClientSchema].map(f)
+
+  def serverInfo(): WithSchemaClient[ArangoServerSchema] =
+    withClient(_.serverInfo)
+
+  def database(
+      name: DatabaseName
+  ): WithSchemaClient[ArangoDatabaseSchema] =
+    withClient(_.database(name))
+
+  def system: WithSchemaClient[ArangoDatabaseSchema] =
+    withClient(_.system)
+
+  def db: WithSchemaClient[ArangoDatabaseSchema] =
+    withClient(_.db)
+
+  def collection(collectionName: CollectionName): WithSchemaClient[ArangoCollectionSchema] =
+    withClient(_.collection(collectionName))
+
+  def graph(graphName: GraphName): WithSchemaClient[ArangoGraphSchema] =
+    withClient(_.graph(graphName))
+
+  val schemaEncoderForHttp: HttpEncoder[Schema] = new HttpEncoder[Schema]:
+    override def encode[R](r: R)(using S: Schema[R]) =
+      Body.fromChunk(zio.schema.codec.JsonCodec.encoderFor(S).encode(r))
+
+  val schemaDecoderForHttp: HttpDecoder[Schema] = new HttpDecoder[Schema]:
+    override def decode[R](body: Body)(using S: Schema[R]): AIO[R] =
+      body.asChunk
+        .catchAll { case t: Throwable =>
+          ZIO.fail(ArangoError(500, true, "Error getting body from Arango response" + t.getMessage, -1))
+        }
+        .flatMap(s => ZIO.fromEither(zio.schema.codec.JsonCodec.decoderFor(S).decode(s)))
+        .catchAll { case t: Throwable =>
+          for
+            failedString <- body.asString.catchAll(e => ZIO.succeed("not able to read body: " + e.getMessage))
+            errorMessage =
+              s"Error parsing JSON Arango response" + t.getMessage + s"\nBody: ${failedString} \nSchema: ${S.toString}"
+            zioError <- ZIO.fail(ArangoError(500, true, errorMessage, -1))
+          yield zioError
+        }
+
+  def arangoClientSchema(
+      config: ArangoConfiguration,
+      httpClient: Client,
+      token: Option[Token] = None
+  ): ArangoClientSchema =
+    new ArangoClientHttp[Schema, Schema](
+      config,
+      httpClient,
+      token
+    )(
+      using schemaEncoderForHttp,
+      schemaDecoderForHttp,
+      given_Schema_Token,
+      given_Schema_Token,
+      given_Schema_UserPassword,
+      given_Schema_UserPassword,
+      given_Schema_ArangoError
+    )
+
+  val live: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientSchema] =
+    ZLayer(for
+      config <- ZIO.service[ArangoConfiguration]
+      httpClient <- ZIO.service[Client]
+      token <- arangoClientSchema(config, httpClient).login(config.username, config.password)
+      arangoClient = arangoClientSchema(config, httpClient, Some(token))
+    yield arangoClient)
+
+  val testContainers
+      : ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientSchema & ArangoContainer] =
+    ZLayer.scopedEnvironment(
+      for
+        aconfig <- ZIO.service[ArangoConfiguration]
+        container <- ArangoContainer.makeScopedContainer(aconfig)
+        newConfig = aconfig.copy(
+          port = container.container.getFirstMappedPort.nn,
+          host = container.container.getHost.nn
+        )
+        httpClient <- ZIO.service[Client]
+        token <- arangoClientSchema(newConfig, httpClient).login(newConfig.username, newConfig.password)
+      yield ZEnvironment(arangoClientSchema(newConfig, httpClient, Some(token)), container)
+    )
+
 object ArangoClientJson:
 
   import zio.json.*
@@ -262,8 +374,13 @@ object ArangoClientJson:
           ZIO.fail(ArangoError(500, true, "Error getting body from Arango response" + t.getMessage, -1))
         }
         .flatMap(s => ZIO.fromEither(D.decodeJson(s)))
-        .catchAll { case t: Throwable =>
-          ZIO.fail(ArangoError(500, true, "Error parsing JSON Arango response" + t.getMessage, -1))
+        .catchAll { case error: Throwable =>
+          for
+            failedString <- body.asString.catchAll(e => ZIO.succeed("not able to read body: " + e.getMessage))
+            errorMessage =
+              s"Error parsing JSON Arango response" + error.getMessage + s"\nBody: ${failedString} \nDecoder: ${D.toString}"
+            zioError <- ZIO.fail(ArangoError(500, true, errorMessage, -1))
+          yield zioError
         }
 
   def arangoClientJson(

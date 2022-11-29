@@ -54,7 +54,7 @@ object VPack:
 
       def filter(p: ((String, VPack)) => Boolean): VObject = obj.copy(values = obj.values.filter(p))
 
-      def without(keys: String*): VObject = VObject(obj.values.filter((key, _) => !keys.contains(key)))
+      def without(keys: String*): VObject = VPack.VObject(obj.values.filter((key, _) => !keys.contains(key)))
       def withoutKey: VObject = obj.without(KeyKey)
       def withoutId: VObject = obj.without(IdKey)
       def withoutRev: VObject = obj.without(RevKey)
