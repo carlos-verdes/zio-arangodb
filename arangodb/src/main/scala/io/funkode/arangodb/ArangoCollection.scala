@@ -49,6 +49,19 @@ class ArangoCollection[Encoder[_], Decoder[_]](databaseName: DatabaseName, colle
   ): AIO[ArangoCollection[Encoder, Decoder]] =
     create(setup).ifConflict(ZIO.succeed(this))
 
+  def createEdge(setup: CollectionCreate => CollectionCreate = identity)(using
+      Encoder[CollectionCreate],
+      Decoder[CollectionInfo]
+  ): AIO[ArangoCollection[Encoder, Decoder]] =
+    val options = setup(CollectionCreate(name, `type` = CollectionType.Edge))
+    POST(database, ApiCollectionPath, options.parameters).withBody(options).execute.map(_ => this)
+
+  def createEdgeIfNotExist(setup: CollectionCreate => CollectionCreate = identity)(using
+      Encoder[CollectionCreate],
+      Decoder[CollectionInfo]
+  ): AIO[ArangoCollection[Encoder, Decoder]] =
+    createEdge(setup).ifConflict(ZIO.succeed(this))
+
   def drop(isSystem: Boolean = false)(using D: Decoder[DeleteResult]): AIO[DeleteResult] =
     DELETE(database, path).execute
 
