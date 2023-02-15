@@ -60,7 +60,7 @@ object JsonCodecs:
 
   // enum based types
   given JsonCodec[CollectionType] =
-    DeriveOpaqueTypeCodec.gen(CollectionType.fromOrdinal, CollectionType.ordinal)
+    DeriveOpaqueTypeCodec.gen(CollectionType.fromInt, (ct: CollectionType) => ct.value)
   given JsonCodec[CollectionStatus] =
     DeriveOpaqueTypeCodec.gen(CollectionStatus.fromOrdinal, CollectionStatus.ordinal)
 
