@@ -11,7 +11,7 @@ ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("releases")
 
 // release plugin
 //import ReleaseTransformations._
-import xerial.sbt.Sonatype._
+//import xerial.sbt.Sonatype._
 
 ThisBuild / releaseCrossBuild := true
 ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
