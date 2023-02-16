@@ -42,7 +42,7 @@ object ArangoSchemaIT extends ZIOSpecDefault with ArangoExamplesSchemas:
           // serverVersionFull <- ArangoClientSchema.serverInfo().version(true)
           databases <- ArangoClientSchema.serverInfo().databases
         // TODO review the Map("" -> "") after zio-schema fix issue with default Maps
-        yield assertTrue(serverVersion == ServerVersion("arango", "community", "3.7.15", Map("" -> ""))) &&
+        yield assertTrue(serverVersion == ServerVersion("arango", "community", "3.10.1", Map("" -> ""))) &&
           /*
           assertTrue(serverVersionFull.version == "3.7.15") &&
           assertTrue(serverVersionFull.details.get("architecture") == Some("64bit")) &&

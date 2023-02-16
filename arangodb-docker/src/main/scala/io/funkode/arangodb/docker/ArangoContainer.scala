@@ -37,7 +37,7 @@ object ArangoContainer:
 
   object Defaults:
     val port: Int = 8529
-    val version: String = java.lang.System.getProperty("test.arangodb.version", "3.7.15").nn
+    val version: String = java.lang.System.getProperty("test.arangodb.version", "3.10.1").nn
     val password: String = Random.nextLong().toHexString
 
   // In the container definition you need to describe, how your container will be constructed:

@@ -20,6 +20,7 @@ import zio.json.*
 import zio.prelude.*
 import zio.schema.*
 import zio.schema.codec.*
+import zio.stream.Stream
 
 import io.funkode.arangodb.docker.*
 import io.funkode.arangodb.http.ArangoClientJson.arangoClientJson
@@ -79,14 +80,25 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
     yield response
 
+  def getRaw(header: ArangoMessage.Header): AIO[Stream[Throwable, Byte]] =
+    for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
+    yield response.body.asStream
+
   def get[O: Decoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
     for
       response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
       body <- parseResponseBody(response)
     yield ArangoMessage(response, body)
 
-  def command[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
+  def commandRaw[Encoder[_], Decoder[_]](
+      message: ArangoMessage[Stream[Throwable, Byte]]
+  ): AIO[Stream[Throwable, Byte]] =
+    val header = message.header.emptyRequest(BaseUrl, headers)
+    val request: Request = header.copy(body = Body.fromStream(message.body))
+    for response <- httpClient.request(request).handleErrors
+    yield response.body.asStream
 
+  def command[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
     val header = message.header.emptyRequest(BaseUrl, headers)
     val request: Request = header.copy(body = httpEncoder.encode(message.body))
     for

@@ -7,6 +7,7 @@
 package io.funkode.arangodb
 
 import zio.ZIO
+import zio.stream.*
 
 import model.*
 import protocol.*
@@ -32,6 +33,30 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
         Transaction.Key -> transactionId.map(_.unwrap)
       ).collectDefined
     ).execute.map(_.count)
+
+  def insertRaw(
+      documentStream: Stream[Throwable, Byte],
+      waitForSync: Boolean = false,
+      returnNew: Boolean = false,
+      returnOld: Boolean = false,
+      silent: Boolean = false,
+      overwrite: Boolean = false,
+      transaction: Option[TransactionId] = None
+  ): AIO[Stream[Throwable, Byte]] =
+    POST(
+      database,
+      path,
+      Map(
+        "waitForSync" -> waitForSync.toString,
+        "returnNew" -> returnNew.toString,
+        "returnOld" -> returnOld.toString,
+        "silent" -> silent.toString,
+        "overwrite" -> overwrite.toString
+      ),
+      Map(
+        Transaction.Key -> transaction.map(_.unwrap)
+      ).collectDefined
+    ).withBody(documentStream).executeRaw[Encoder, Decoder]
 
   def insert[T](
       document: T,

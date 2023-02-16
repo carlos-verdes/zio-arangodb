@@ -9,6 +9,7 @@ package io.funkode.arangodb
 import java.util.Base64.Decoder
 
 import zio.*
+import zio.stream.*
 
 import model.*
 import protocol.*
@@ -17,7 +18,11 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
 
   def head(header: ArangoMessage.Header): AIO[ArangoMessage.Header]
   def get[O: Decoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]]
+  def getRaw(header: ArangoMessage.Header): AIO[Stream[Throwable, Byte]]
   def command[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]]
+  def commandRaw[Encoder[_], Decoder[_]](
+      message: ArangoMessage[Stream[Throwable, Byte]]
+  ): AIO[Stream[Throwable, Byte]]
 
   def login(username: String, password: String): AIO[Token]
 
@@ -38,9 +43,15 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
     new ArangoGraph[Encoder, Decoder](db.name, graphName)(using this)
 
   def getBody[O: Decoder](header: ArangoMessage.Header): AIO[O] = get(header).map(_.body)
+  def getBodyRaw(header: ArangoMessage.Header): AIO[Stream[Throwable, Byte]] = getRaw(header)
 
   def commandBody[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[O] =
     command(message).map(_.body)
+
+  def commandBodyRaw[Encoder[_], Decoder[_]](
+      message: ArangoMessage[Stream[Throwable, Byte]]
+  ): AIO[Stream[Throwable, Byte]] =
+    commandRaw[Encoder, Decoder](message)
 
   def withConfiguration(config: ArangoConfiguration): ArangoClient[Encoder, Decoder]
 
