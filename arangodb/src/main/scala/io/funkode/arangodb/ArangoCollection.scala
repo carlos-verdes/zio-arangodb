@@ -106,6 +106,18 @@ object ArangoCollection:
     ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
       colService.flatMap(_.createIfNotExist(setup))
 
+    def createEdge(setup: CollectionCreate => CollectionCreate = identity)(using
+        Enc[CollectionCreate],
+        Dec[CollectionInfo]
+    ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
+      colService.flatMap(_.createEdge(setup))
+
+    def createEdgeIfNotExist(setup: CollectionCreate => CollectionCreate = identity)(using
+        Enc[CollectionCreate],
+        Dec[CollectionInfo]
+    ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
+      colService.flatMap(_.createEdgeIfNotExist(setup))
+
     def drop(isSystem: Boolean = false)(using D: Dec[DeleteResult]): ZIO[R, ArangoError, DeleteResult] =
       colService.flatMap(_.drop(isSystem))
 

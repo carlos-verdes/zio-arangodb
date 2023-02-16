@@ -27,7 +27,8 @@ trait ArangoExamples:
   case class Country(flag: String, name: String)
   case class Pet(name: String, age: Int)
   case class PatchAge(_key: DocumentKey, age: Int)
-  case class PetWithKey(_key: DocumentKey, name: String, age: Int)
+  case class PetWithKey(_key: DocumentKey, name: String, age: Int) derives JsonCodec
+  case class CreatedPet(`new`: PetWithKey) derives JsonCodec
   case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle)
 
   given JsonCodec[Country] = DeriveJsonCodec.gen[Country]
@@ -42,6 +43,7 @@ trait ArangoExamples:
   val randomCollection = CollectionName("someRandomCol")
   val petsCollection = CollectionName("pets")
   val pets2Collection = CollectionName("pets2")
+  val streamCollection = CollectionName("stream-test")
 
   val pet1 = Pet("dog", 2)
   val pet2 = Pet("cat", 3)
@@ -87,8 +89,8 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           serverVersion <- ArangoClientJson.serverInfo().version()
           serverVersionFull <- ArangoClientJson.serverInfo().version(true)
           databases <- ArangoClientJson.serverInfo().databases
-        yield assertTrue(serverVersion == ServerVersion("arango", "community", "3.7.15")) &&
-          assertTrue(serverVersionFull.version == "3.7.15") &&
+        yield assertTrue(serverVersion == ServerVersion("arango", "community", "3.10.1")) &&
+          assertTrue(serverVersionFull.version == "3.10.1") &&
           assertTrue(serverVersionFull.details.get("architecture") == Some("64bit")) &&
           assertTrue(serverVersionFull.details.get("mode") == Some("server")) &&
           assertTrue(Set(DatabaseName.system, DatabaseName("test")).subsetOf(databases.toSet))
@@ -212,7 +214,7 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
         for
           graph <- ArangoClientJson.graph(politics)
           graphCreated <- graph.create(graphEdgeDefinitions)
-          alliesCol = ArangoClientJson.db.collection(allies)
+          alliesCol = ArangoClientJson.db.collection(allies).createEdgeIfNotExist()
           _ <- alliesCol.documents.create(alliesOfEs)
           queryAlliesOfSpain =
             ArangoClientJson.db
@@ -224,7 +226,40 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           resultQuery <- queryAlliesOfSpain.execute[Country].map(_.result)
         yield assertTrue(graphCreated.name == politics) &&
           assertTrue(graphCreated.edgeDefinitions == graphEdgeDefinitions) &&
-          assertTrue(resultQuery == expectedAllies)
+          assertTrue(resultQuery.sortBy(_.name) == expectedAllies.sortBy(_.name))
+      },
+      test("Save and retrieve document from byte array stream") {
+        for
+          createdCollection <- ArangoClientJson.collection(streamCollection).create()
+          documents = createdCollection.documents
+          key = DocumentKey("tobby")
+          document = createdCollection.document(key)
+          beforeCount <- documents.count()
+          documentStream = ZStream.fromIterable("""
+              |{
+              |  "_key": "tobby",
+              |  "name": "Petehar",
+              |  "age": 12
+              |}""".stripMargin.getBytes())
+          created <- documents.insertRaw(documentStream, true, true)
+          createdParsed <- JsonDecoder[CreatedPet].decodeJsonStreamInput(created)
+          insertedCount <- documents.count()
+          fetched <- document.readRaw()
+          fetchedParsed <- JsonDecoder[PetWithKey].decodeJsonStreamInput(fetched)
+          head <- document.head()
+          deletedDoc <- document.remove[Pet](true)
+          countAfterDelete <- documents.count()
+          _ <- createdCollection.drop()
+        yield assertTrue(beforeCount == 0L) &&
+          assertTrue(createdParsed.`new` == PetWithKey(key, "Petehar", 12)) &&
+          assertTrue(insertedCount == 1L) &&
+          assertTrue(fetchedParsed == PetWithKey(key, "Petehar", 12)) &&
+          assertTrue(head match
+            case Header.Response(_, _, code, _) => code == 200
+            case _                              => false
+          ) &&
+          assertTrue(deletedDoc._key == key) &&
+          assertTrue(countAfterDelete == 0L)
       }
     ).provideShared(
       Scope.default,

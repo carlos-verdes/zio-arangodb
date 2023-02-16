@@ -6,6 +6,8 @@
 
 package io.funkode.arangodb
 
+import zio.stream.*
+
 import io.funkode.velocypack.{VPack, VPackEncoder}
 import io.funkode.velocypack.VPack.VObject
 import model.*
@@ -35,6 +37,21 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
         Transaction.Key -> transaction.map(_.unwrap)
       ).collectDefined
     ).execute
+
+  def readRaw(
+      ifNoneMatch: Option[String] = None,
+      ifMatch: Option[String] = None,
+      transaction: Option[TransactionId] = None
+  ): AIO[Stream[Throwable, Byte]] =
+    GET(
+      database,
+      path,
+      meta = Map(
+        "If-None-Match" -> ifNoneMatch,
+        "If-Match" -> ifMatch,
+        Transaction.Key -> transaction.map(_.unwrap)
+      ).collectDefined
+    ).executeRaw
 
   def head(
       ifNoneMatch: Option[String] = None,

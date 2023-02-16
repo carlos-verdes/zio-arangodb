@@ -11,6 +11,7 @@ import scala.collection.immutable.Map
 
 import io.lemonlabs.uri.UrlPath
 import zio.prelude.Covariant
+import zio.stream.*
 
 case class ArangoMessage[+T](header: ArangoMessage.Header, body: T)
 
@@ -57,11 +58,22 @@ object ArangoMessage:
     ): AIO[O] =
       arangoClient.getBody[O](header)
 
+    def executeRaw[Encoder[_], Decoder[_]](using
+        arangoClient: ArangoClient[Encoder, Decoder]
+    ): AIO[Stream[Throwable, Byte]] =
+      arangoClient.getBodyRaw(header)
+
     def executeIgnoreResult[O, Encoder[_], Decoder[_]](using
         arangoClient: ArangoClient[Encoder, Decoder],
         D: Decoder[ArangoResult[O]]
     ): AIO[O] =
       execute[ArangoResult[O], Encoder, Decoder].map(_.result)
+
+  extension (arangoMessage: ArangoMessage[Stream[Throwable, Byte]])
+    def executeRaw[Encoder[_], Decoder[_]](using
+        arangoClient: ArangoClient[Encoder, Decoder]
+    ): AIO[Stream[Throwable, Byte]] =
+      arangoClient.commandBodyRaw(arangoMessage)
 
   extension [I](arangoMessage: ArangoMessage[I])
     def execute[O, Encoder[_], Decoder[_]](using
