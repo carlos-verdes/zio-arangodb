@@ -35,14 +35,14 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
     ).execute.map(_.count)
 
   def insertRaw(
-      documentStream: Stream[Throwable, Byte],
+      documentStream: ArangoStreamRaw,
       waitForSync: Boolean = false,
       returnNew: Boolean = false,
       returnOld: Boolean = false,
       silent: Boolean = false,
       overwrite: Boolean = false,
       transaction: Option[TransactionId] = None
-  ): AIO[Stream[Throwable, Byte]] =
+  ): AIO[ArangoStreamRaw] =
     POST(
       database,
       path,

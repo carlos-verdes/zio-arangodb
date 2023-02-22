@@ -42,7 +42,7 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
       ifNoneMatch: Option[String] = None,
       ifMatch: Option[String] = None,
       transaction: Option[TransactionId] = None
-  ): AIO[Stream[Throwable, Byte]] =
+  ): AIO[ArangoStreamRaw] =
     GET(
       database,
       path,
