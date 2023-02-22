@@ -9,11 +9,14 @@ package io.funkode.arangodb
 import io.lemonlabs.uri.*
 import io.lemonlabs.uri.typesafe.dsl.*
 import zio.*
+import zio.stream.Stream
 
 import model.*
 import protocol.*
 
 type AIO[A] = IO[ArangoError, A]
+type ArangoStream[A] = Stream[ArangoError, A]
+type ArangoStreamRaw = ArangoStream[Byte]
 type WithClient[Encoder[_], Decoder[_], O] = ZIO[ArangoClient[Encoder, Decoder], ArangoError, O]
 type WithResource[R, O] = ZIO[R, ArangoError, O]
 

@@ -20,7 +20,7 @@ import zio.json.*
 import zio.prelude.*
 import zio.schema.*
 import zio.schema.codec.*
-import zio.stream.Stream
+import zio.stream.*
 
 import io.funkode.arangodb.docker.*
 import io.funkode.arangodb.http.ArangoClientJson.arangoClientJson
@@ -80,9 +80,9 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
     yield response
 
-  def getRaw(header: ArangoMessage.Header): AIO[Stream[Throwable, Byte]] =
+  def getRaw(header: ArangoMessage.Header): AIO[ArangoStreamRaw] =
     for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
-    yield response.body.asStream
+    yield response.body.asStream.handleStreamErrors
 
   def get[O: Decoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
     for
@@ -91,12 +91,12 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     yield ArangoMessage(response, body)
 
   def commandRaw[Encoder[_], Decoder[_]](
-      message: ArangoMessage[Stream[Throwable, Byte]]
-  ): AIO[Stream[Throwable, Byte]] =
+      message: ArangoMessage[ArangoStreamRaw]
+  ): AIO[ArangoStreamRaw] =
     val header = message.header.emptyRequest(BaseUrl, headers)
     val request: Request = header.copy(body = Body.fromStream(message.body))
     for response <- httpClient.request(request).handleErrors
-    yield response.body.asStream
+    yield response.body.asStream.handleStreamErrors
 
   def command[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
     val header = message.header.emptyRequest(BaseUrl, headers)
@@ -243,16 +243,17 @@ object extensions:
 
   extension (s: String | Null) def getOrEmpty: String = if s != null then s else ""
 
+  def throwableToArangoError(t: Throwable): ArangoError = t match
+    case e: MalformedURLException =>
+      ArangoMessage.error(Status.BadRequest.code, e.getMessage.getOrEmpty)
+    case t: Throwable =>
+      ArangoMessage.error(Status.InternalServerError.code, RuntimeError + t.getMessage.getOrEmpty)
+
   extension [A](call: IO[Throwable, A])
-    def handleErrors: IO[ArangoError, A] =
-      call.catchAll {
-        case e: MalformedURLException =>
-          ZIO.fail(ArangoMessage.error(Status.BadRequest.code, e.getMessage.getOrEmpty))
-        case t: Throwable =>
-          ZIO.fail(
-            ArangoMessage.error(Status.InternalServerError.code, RuntimeError + t.getMessage.getOrEmpty)
-          )
-      }
+    def handleErrors: IO[ArangoError, A] = call.catchAll(e => ZIO.fail(throwableToArangoError(e)))
+
+  extension [A](stream: Stream[Throwable, A])
+    def handleStreamErrors: ArangoStream[A] = stream.catchAll(e => ZStream.fail(throwableToArangoError(e)))
 
 object ArangoClientSchema:
 
