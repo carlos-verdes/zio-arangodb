@@ -123,12 +123,23 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
   def withConfiguration(newConfig: ArangoConfiguration): ArangoClient[Encoder, Decoder] =
     new ArangoClientHttp[Encoder, Decoder](newConfig, httpClient, token)
 
-  private def parseResponseBody[O: Decoder](response: Response)(using Decoder[ArangoError]): AIO[O] =
-    for body <-
+  private def parseResponseBody[O: Decoder](response: Response): AIO[O] =
         if response.status.isError
-        then httpDecoder.decode[ArangoError](response.body).flatMap[Any, ArangoError, O](r => ZIO.fail(r))
+        then
+         httpDecoder.decode[ArangoError](response.body) 
+         .foldCauseZIO({
+          case e =>
+            response.body.asString
+              .foldZIO(e => ZIO.fail(ArangoError(500, true, "Can't get body of response from Arango: " + e.getMessage, -1)), body =>
+                ZIO.fail(ArangoError(
+                  response.status.code,
+                  true,
+                  s"Incorrect status from server: ${response.status.code}. Body: $body",
+                  -1
+                )
+              ))
+         }, arangoError => ZIO.fail(arangoError))
         else httpDecoder.decode[O](response.body)
-    yield body
 
   def currentDatabase: DatabaseName = (config.database)
 
@@ -286,15 +297,15 @@ object ArangoClientSchema:
 
   val schemaEncoderForHttp: HttpEncoder[Schema] = new HttpEncoder[Schema]:
     override def encode[R](r: R)(using S: Schema[R]) =
-      Body.fromChunk(zio.schema.codec.JsonCodec.encoderFor(S).encode(r))
+      Body.fromCharSequence(zio.schema.codec.JsonCodec.jsonEncoder(S).encodeJson(r))
 
   val schemaDecoderForHttp: HttpDecoder[Schema] = new HttpDecoder[Schema]:
     override def decode[R](body: Body)(using S: Schema[R]): AIO[R] =
-      body.asChunk
+      body.asCharSeq
         .catchAll { case t: Throwable =>
           ZIO.fail(ArangoError(500, true, "Error getting body from Arango response" + t.getMessage, -1))
         }
-        .flatMap(s => ZIO.fromEither(zio.schema.codec.JsonCodec.decoderFor(S).decode(s)))
+        .flatMap(s => ZIO.fromEither(zio.schema.codec.JsonCodec.jsonDecoder(S).decodeJson(s)))
         .catchAll { case t: Throwable =>
           for
             failedString <- body.asString.catchAll(e => ZIO.succeed("not able to read body: " + e.getMessage))
@@ -382,19 +393,33 @@ object ArangoClientJson:
 
   val jsonDecoderForHttp: HttpDecoder[JsonDecoder] = new HttpDecoder[JsonDecoder]:
     override def decode[R](body: Body)(using D: JsonDecoder[R]): AIO[R] =
-      body.asString
-        .catchAll { case t: Throwable =>
-          ZIO.fail(ArangoError(500, true, "Error getting body from Arango response" + t.getMessage, -1))
-        }
-        .flatMap(s => ZIO.fromEither(D.decodeJson(s)))
-        .catchAll { case error: Throwable =>
-          for
-            failedString <- body.asString.catchAll(e => ZIO.succeed("not able to read body: " + e.getMessage))
-            errorMessage =
-              s"Error parsing JSON Arango response" + error.getMessage + s"\nBody: ${failedString} \nDecoder: ${D.toString}"
-            zioError <- ZIO.fail(ArangoError(500, true, errorMessage, -1))
-          yield zioError
-        }
+      for
+        body <- body.asString
+          .catchAll { case t: Throwable =>
+            ZIO.fail(ArangoError(500, true, "Error getting body from Arango response" + t.getMessage, -1))
+          }
+        nonEmptyBody <-
+          if body.nonEmpty then ZIO.succeed(body)
+          else
+            ZIO.fail(
+              ArangoError(
+                500,
+                true,
+                s"Empty body in Arango response",
+                -1
+              )
+            )
+        result <- ZIO
+          .fromEither(D.decodeJson(nonEmptyBody))
+          .mapError(decodeError =>
+            ArangoError(
+              500,
+              true,
+              s"Error parsing JSON Arango response: " + decodeError + s"\nBody: $body",
+              -1
+            )
+          )
+      yield result
 
   def arangoClientJson(
       config: ArangoConfiguration,
