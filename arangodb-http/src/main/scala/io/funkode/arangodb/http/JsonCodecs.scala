@@ -11,6 +11,7 @@ import zio.json.*
 import zio.json.JsonDecoder.{JsonError, UnsafeJson}
 import zio.json.ast.*
 import zio.json.internal.*
+import io.funkode.arangodb.http.CombineJsonDecoders.combine
 
 import io.funkode.velocypack.*
 
@@ -20,7 +21,10 @@ object JsonCodecs:
   import VPack.*
 
   given JsonCodec[ArangoError] = DeriveJsonCodec.gen[ArangoError]
+  given JsonCodec[ArangoRequestStatus] = DeriveJsonCodec.gen[ArangoRequestStatus]
   given arangoResult[O](using JsonCodec[O]): JsonCodec[ArangoResult[O]] = DeriveJsonCodec.gen[ArangoResult[O]]
+  given arangoResponse[O](using a: JsonDecoder[O], b: JsonDecoder[ArangoRequestStatus]): JsonDecoder[ArangoResponse[O]] =
+    a.combine(b)((a, b) => ArangoResponse(b, a))
   given JsonCodec[CollectionChecksum] = DeriveJsonCodec.gen[CollectionChecksum]
   given JsonCodec[CollectionCount] = DeriveJsonCodec.gen[CollectionCount]
   given JsonCodec[CollectionCreate.KeyOptions] = DeriveJsonCodec.gen[CollectionCreate.KeyOptions]

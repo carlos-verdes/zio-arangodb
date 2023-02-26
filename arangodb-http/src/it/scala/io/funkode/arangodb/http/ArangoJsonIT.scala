@@ -12,6 +12,7 @@ import zio.*
 import zio.http.Client
 import zio.json.*
 import zio.test.*
+import zio.test.Assertion.*
 import zio.stream.*
 import model.*
 import protocol.*
@@ -227,6 +228,12 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
         yield assertTrue(graphCreated.name == politics) &&
           assertTrue(graphCreated.edgeDefinitions == graphEdgeDefinitions) &&
           assertTrue(resultQuery.sortBy(_.name) == expectedAllies.sortBy(_.name))
+      },
+      test("Get vertex collections in the graph") {
+        for
+          graph <- ArangoClientJson.graph(politics)
+          collections <- graph.vertexCollections
+        yield assert(collections)(hasSameElements(List(countries)))
       },
       test("Save and retrieve document from byte array stream") {
         for
