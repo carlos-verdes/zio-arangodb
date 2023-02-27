@@ -22,7 +22,7 @@ IntegrationTest / fork := true
 inThisBuild(
   Seq(
     organization := "io.funkode",
-    scalaVersion :="3.2.2-RC1",
+    scalaVersion :="3.2.2-RC2",
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
     scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",

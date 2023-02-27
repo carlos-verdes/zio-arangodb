@@ -49,10 +49,10 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
       .executeIgnoreResult[RemovedResult, Encoder, Decoder]
       .map(_.removed)
 
-  def vertexCollections(using Decoder[ArangoResult[GraphCollections]]): AIO[List[CollectionName]] =
+  def vertexCollections(using Decoder[ArangoResponse[GraphCollections]]): AIO[List[CollectionName]] =
     GET(database, vertexPath)
-      .executeIgnoreResult[GraphCollections, Encoder, Decoder]
-      .map(_.collections)
+      .execute[ArangoResponse[GraphCollections], Encoder, Decoder]
+      .map(_.result.collections)
 
   def addVertexCollection(
       collection: CollectionName
