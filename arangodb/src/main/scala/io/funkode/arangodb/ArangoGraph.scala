@@ -56,23 +56,23 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
 
   def addVertexCollection(
       collection: CollectionName
-  )(using Encoder[VertexCollectionCreate], Decoder[ArangoResult[GraphInfo.Response]]): AIO[GraphInfo] =
+  )(using Encoder[VertexCollectionCreate], Decoder[ArangoResponse[GraphInfo.Response]]): AIO[GraphInfo] =
     POST(database, vertexPath)
       .withBody(VertexCollectionCreate(collection))
-      .executeIgnoreResult[GraphInfo.Response, Encoder, Decoder]
-      .map(_.graph)
+      .execute[ArangoResponse[GraphInfo.Response], Encoder, Decoder]
+      .map(_.result.graph)
 
   def removeVertexCollection(
       collection: CollectionName,
       dropCollection: Boolean = false
-  )(using Decoder[ArangoResult[GraphInfo.Response]]): AIO[GraphInfo] =
+  )(using Decoder[ArangoResponse[GraphInfo.Response]]): AIO[GraphInfo] =
     DELETE(
       database,
       vertexPath.addPart(collection.unwrap),
       Map(
         "dropCollection" -> dropCollection.toString
       )
-    ).executeIgnoreResult[GraphInfo.Response, Encoder, Decoder].map(_.graph)
+    ).execute[ArangoResponse[GraphInfo.Response], Encoder, Decoder].map(_.result.graph)
 
   def collection(collection: CollectionName): ArangoGraphCollection[Encoder, Decoder] =
     new ArangoGraphCollection[Encoder, Decoder](database, name, collection)

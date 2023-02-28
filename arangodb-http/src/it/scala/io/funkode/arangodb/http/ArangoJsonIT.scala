@@ -67,9 +67,20 @@ trait ArangoExamples:
   val secondCountries = List(Country("🇦🇫", "Afghanistan"), Country("🇦🇬", "Antigua and Barbuda"))
 
   val politics = GraphName("politics")
+  val geography = GraphName("geography")
   val allies = CollectionName("allies")
+  val geographyCollection = CollectionName("geography")
+  val geographyCollection2 = CollectionName("geography2")
   val countries = CollectionName("countries")
+  val continents = CollectionName("continents")
+  val oceans = CollectionName("oceans")
   val graphEdgeDefinitions = List(GraphEdgeDefinition(allies, List(countries), List(countries)))
+  val graphEdgeDefinitionsGeography = List(
+    GraphEdgeDefinition(geographyCollection, List(continents), List(continents))
+  )
+  val graphEdgeDefinitionsGeography2 = List(
+    GraphEdgeDefinition(geographyCollection2, List(continents), List(continents))
+  )
   val es = DocumentHandle(countries, DocumentKey("ES"))
   val fr = DocumentHandle(countries, DocumentKey("FR"))
   val us = DocumentHandle(countries, DocumentKey("US"))
@@ -234,6 +245,26 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           graph <- ArangoClientJson.graph(politics)
           collections <- graph.vertexCollections
         yield assert(collections)(hasSameElements(List(countries)))
+      },
+      test("Add vertex collection to the graph") {
+        for
+          graph <- ArangoClientJson.graph(geography)
+          graphCreated <- graph.create(graphEdgeDefinitionsGeography)
+          _ <- graph.addVertexCollection(oceans)
+          collections <- graph.vertexCollections
+        yield assert(collections)(hasSameElements(List(oceans, continents)))
+      },
+      test("Remove vertex collection") {
+        for
+          graph <- ArangoClientJson.graph(GraphName("geography2"))
+          graphCreated <- graph.create(graphEdgeDefinitionsGeography2)
+          _ <- graph.addVertexCollection(oceans)
+          collectionsBefore <- graph.vertexCollections
+          _ <- graph.removeVertexCollection(oceans)
+          collectionsAfter <- graph.vertexCollections
+        yield assertTrue(collectionsBefore != collectionsAfter) && assertTrue(
+          collectionsAfter == List(continents)
+        )
       },
       test("Save and retrieve document from byte array stream") {
         for

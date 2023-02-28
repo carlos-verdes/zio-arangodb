@@ -11,8 +11,8 @@ import zio.json.*
 import zio.json.JsonDecoder.{JsonError, UnsafeJson}
 import zio.json.ast.*
 import zio.json.internal.*
-import io.funkode.arangodb.http.CombineJsonDecoders.combine
 
+import io.funkode.arangodb.http.CombineJsonDecoders.combine
 import io.funkode.velocypack.*
 
 object JsonCodecs:
@@ -23,7 +23,10 @@ object JsonCodecs:
   given JsonCodec[ArangoError] = DeriveJsonCodec.gen[ArangoError]
   given JsonCodec[ArangoRequestStatus] = DeriveJsonCodec.gen[ArangoRequestStatus]
   given arangoResult[O](using JsonCodec[O]): JsonCodec[ArangoResult[O]] = DeriveJsonCodec.gen[ArangoResult[O]]
-  given arangoResponse[O](using a: JsonDecoder[O], b: JsonDecoder[ArangoRequestStatus]): JsonDecoder[ArangoResponse[O]] =
+  given arangoResponse[O](using
+      a: JsonDecoder[O],
+      b: JsonDecoder[ArangoRequestStatus]
+  ): JsonDecoder[ArangoResponse[O]] =
     a.combine(b)((a, b) => ArangoResponse(b, a))
   given JsonCodec[CollectionChecksum] = DeriveJsonCodec.gen[CollectionChecksum]
   given JsonCodec[CollectionCount] = DeriveJsonCodec.gen[CollectionCount]
@@ -39,6 +42,7 @@ object JsonCodecs:
   given JsonCodec[DatabaseInfo] = DeriveJsonCodec.gen[DatabaseInfo]
   given JsonCodec[DeleteResult] = DeriveJsonCodec.gen[DeleteResult]
   given JsonCodec[GraphCollections] = DeriveJsonCodec.gen[GraphCollections]
+  given JsonCodec[VertexCollectionCreate] = DeriveJsonCodec.gen[VertexCollectionCreate]
   given JsonCodec[GraphCreate] = DeriveJsonCodec.gen[GraphCreate]
   given edge[T](using JsonCodec[T]): JsonCodec[GraphEdge[T]] = DeriveJsonCodec.gen[GraphEdge[T]]
   given JsonCodec[GraphEdgeDefinition] = DeriveJsonCodec.gen[GraphEdgeDefinition]
