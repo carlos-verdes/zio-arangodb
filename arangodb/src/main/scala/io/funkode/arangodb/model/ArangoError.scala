@@ -9,7 +9,7 @@ package io.funkode.arangodb.model
 import zio.*
 
 case class ArangoError(code: Long, error: Boolean, errorMessage: String, errorNum: Long) extends Throwable:
-  override def getMessage: _root_.java.lang.String =
+  override def getMessage: String =
     s"ArangoError(code: $code, num: $errorNum, message: $errorMessage)"
 
 object ArangoError:

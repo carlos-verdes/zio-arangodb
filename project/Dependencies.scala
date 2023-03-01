@@ -13,7 +13,7 @@ object Dependencies {
     val zioConfTypesafeV = "3.0.2"
     val zioCryptoV = "0.0.1"
     val zioPreludeV = "1.0.0-RC16"
-    val zioSchemaV = "0.3.1"
+    val zioSchemaV = "0.4.8"
 
     val logBackV = "1.4.0"
     val scalaUriV = "4.0.2"
@@ -31,6 +31,7 @@ object Dependencies {
     val zioConfTypesafe = "dev.zio" %% "zio-config-typesafe"   % zioConfTypesafeV
     val zioCrypto       = "dev.zio" %% "zio-crypto"            % zioCryptoV
     val zioHttp         = "dev.zio" %% "zio-http"              % zioHttpV
+    val zioHttpTestKit  = "dev.zio" %% "zio-http-testkit"      % zioHttpV
     val zioJson         = "dev.zio" %% "zio-json"              % zioJsonV
     val zioJGolden      = "dev.zio" %% "zio-json-golden"       % zioJsonV
     val zioPrelude      = "dev.zio" %% "zio-prelude"           % zioPreludeV

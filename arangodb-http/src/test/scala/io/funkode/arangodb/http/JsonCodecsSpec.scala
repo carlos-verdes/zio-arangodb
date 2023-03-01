@@ -14,6 +14,7 @@ import zio.test.*
 import zio.test.Assertion.equalTo
 import model.{ArangoRequestStatus, ArangoResponse, CollectionName, CollectionType, GraphCollections}
 import JsonCodecs.given
+import io.funkode.arangodb.model.ArangoError
 
 object JsonCodecsSpec extends ZIOSpecDefault:
 
@@ -44,5 +45,10 @@ object JsonCodecsSpec extends ZIOSpecDefault:
         val collectionsRes = """{"error":false,"code":200,"collections":["hobbies","tags"]}""".fromJson[GraphCollections]
         assertTrue(collectionsRes == Right(collections)) && assertTrue(requestStatusRes == Right(requestStatus))
         && assertTrue(result == Right(expected))
+      },
+      test("decode ArangoError") {
+        val expected = ArangoError(400, true, "Error happened", -5)
+        val result = "{\"code\": 400, \"error\": true, \"errorMessage\": \"Error happened\", \"errorNum\": -5}".fromJson[ArangoError]
+        assertTrue(result == Right(expected))
       }
    )
