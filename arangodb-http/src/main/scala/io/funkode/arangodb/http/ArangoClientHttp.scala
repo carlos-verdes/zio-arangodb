@@ -124,22 +124,32 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     new ArangoClientHttp[Encoder, Decoder](newConfig, httpClient, token)
 
   private def parseResponseBody[O: Decoder](response: Response): AIO[O] =
-        if response.status.isError
-        then
-         httpDecoder.decode[ArangoError](response.body) 
-         .foldCauseZIO({
-          case e =>
+    if response.status.isError
+    then
+      httpDecoder
+        .decode[ArangoError](response.body)
+        .foldCauseZIO(
+          { case e =>
             response.body.asString
-              .foldZIO(e => ZIO.fail(ArangoError(500, true, "Can't get body of response from Arango: " + e.getMessage, -1)), body =>
-                ZIO.fail(ArangoError(
-                  response.status.code,
-                  true,
-                  s"Incorrect status from server: ${response.status.code}. Body: $body",
-                  -1
-                )
-              ))
-         }, arangoError => ZIO.fail(arangoError))
-        else httpDecoder.decode[O](response.body)
+              .foldZIO(
+                e =>
+                  ZIO.fail(
+                    ArangoError(500, true, "Can't get body of response from Arango: " + e.getMessage, -1)
+                  ),
+                body =>
+                  ZIO.fail(
+                    ArangoError(
+                      response.status.code,
+                      true,
+                      s"Incorrect status from server: ${response.status.code}. Body: $body",
+                      -1
+                    )
+                  )
+              )
+          },
+          arangoError => ZIO.fail(arangoError)
+        )
+    else httpDecoder.decode[O](response.body)
 
   def currentDatabase: DatabaseName = (config.database)
 

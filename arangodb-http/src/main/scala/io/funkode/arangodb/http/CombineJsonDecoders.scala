@@ -6,11 +6,11 @@
 
 package io.funkode.arangodb.http
 
-import zio.json.internal.RetractReader
 import zio.json.{JsonDecoder, JsonError, JsonRewindDecoder}
+import zio.json.internal.RetractReader
 
 object CombineJsonDecoders:
-  extension[A](decoder: JsonDecoder[A])
+  extension [A](decoder: JsonDecoder[A])
     def combine[B, O](other: JsonDecoder[B])(fn: (A, B) => O): JsonDecoder[O] =
       new JsonDecoder[O]:
         override def unsafeDecode(trace: List[JsonError], in: RetractReader): O =
@@ -19,4 +19,3 @@ object CombineJsonDecoders:
           aDecoder.reader.rewind()
           val b = other.unsafeDecode(trace, aDecoder.reader)
           fn(a, b)
-

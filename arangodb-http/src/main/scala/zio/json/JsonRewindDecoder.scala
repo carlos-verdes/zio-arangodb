@@ -6,10 +6,9 @@
 
 package zio.json
 
-import zio.json.internal.{RetractReader, Write}
-import zio.json.internal.RecordingReader
-
 import scala.compiletime.uninitialized
+
+import zio.json.internal.{RecordingReader, RetractReader, Write}
 
 //TODO: Remove this when this issue https://github.com/zio/zio-json/issues/487 will be fixed
 

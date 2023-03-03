@@ -7,13 +7,18 @@
 package io.funkode.arangodb.http
 
 import zio.*
-import zio.http.{Body, Request, Response, TestClient}
+import zio.http.*
 import zio.http.model.*
 import zio.json.{DeriveJsonCodec, JsonCodec}
 import zio.test.*
 import zio.test.Assertion.*
+
 import io.funkode.arangodb.{AIO, ArangoConfiguration}
-import io.funkode.arangodb.http.JsonCodecs.{given_JsonCodec_CollectionName, given_JsonCodec_CollectionStatus, given_JsonCodec_CollectionType}
+import io.funkode.arangodb.http.JsonCodecs.{
+  given_JsonCodec_CollectionName,
+  given_JsonCodec_CollectionStatus,
+  given_JsonCodec_CollectionType
+}
 import io.funkode.arangodb.model.*
 
 object ArangoClientHttpSpec extends ZIOSpecDefault:
@@ -38,7 +43,14 @@ object ArangoClientHttpSpec extends ZIOSpecDefault:
       },
       test("Correctly handle error response from the server that matches ArangoError structure") {
         val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _ =>
-           ZIO.succeed(Response(Status.BadRequest, body = Body.fromString("{\"code\": 400, \"error\": true, \"errorMessage\": \"Error happened\", \"errorNum\": -5}")))
+          ZIO.succeed(
+            Response(
+              Status.BadRequest,
+              body = Body.fromString(
+                "{\"code\": 400, \"error\": true, \"errorMessage\": \"Error happened\", \"errorNum\": -5}"
+              )
+            )
+          )
         }
         val assertion = assertError(
           ArangoError(
@@ -51,9 +63,8 @@ object ArangoClientHttpSpec extends ZIOSpecDefault:
         errorTestCase(response, assertion)
       },
       test("Correctly handle unexpected error response from the server instead of the expected one") {
-        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = {
-          case _ =>
-            ZIO.succeed(Response(Status.Conflict, body = Body.fromString("{\"error\": true}")))
+        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _ =>
+          ZIO.succeed(Response(Status.Conflict, body = Body.fromString("{\"error\": true}")))
         }
         val assertion = assertError(
           ArangoError(
