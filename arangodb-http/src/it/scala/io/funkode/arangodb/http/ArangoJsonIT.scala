@@ -74,6 +74,7 @@ trait ArangoExamples:
   val countries = CollectionName("countries")
   val continents = CollectionName("continents")
   val oceans = CollectionName("oceans")
+  val oceans2 = CollectionName("oceans2")
   val graphEdgeDefinitions = List(GraphEdgeDefinition(allies, List(countries), List(countries)))
   val graphEdgeDefinitionsGeography = List(
     GraphEdgeDefinition(geographyCollection, List(continents), List(continents))
@@ -196,6 +197,26 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(deletedDoc._key == petWithKey._key) &&
           assertTrue(countAfterDelete == 0L)
       },
+      test("Manage collection doesn't exist when fetching document") {
+        for
+          invalidCollection <- ArangoClientJson.collection(CollectionName("collectionDoesntExist"))
+          error <- invalidCollection
+            .document(DocumentKey("turtle"))
+            .read[Pet]()
+            .flip
+            .debug("test collection doesn't exist")
+        yield assertTrue(error.code == 404L)
+      },
+      test("Manage document doesn't exist when fetching document") {
+        for
+          invalidCollection <- ArangoClientJson.collection(CollectionName("countries"))
+          error <- invalidCollection
+            .document(DocumentKey("turtle"))
+            .read[Pet]()
+            .flip
+            .debug("test document doesn't exist")
+        yield assertTrue(error.code == 404L)
+      },
       test("Query documents with cursor") {
         for
           db <- ArangoClientJson.database(DatabaseName("test"))
@@ -236,15 +257,11 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
                   .bindVar("@edge", VString(allies.unwrap))
               )
           resultQuery <- queryAlliesOfSpain.execute[Country].map(_.result)
+          vertexCollections <- graph.vertexCollections
         yield assertTrue(graphCreated.name == politics) &&
           assertTrue(graphCreated.edgeDefinitions == graphEdgeDefinitions) &&
-          assertTrue(resultQuery.sortBy(_.name) == expectedAllies.sortBy(_.name))
-      },
-      test("Get vertex collections in the graph") {
-        for
-          graph <- ArangoClientJson.graph(politics)
-          collections <- graph.vertexCollections
-        yield assert(collections)(hasSameElements(List(countries)))
+          assertTrue(resultQuery.sortBy(_.name) == expectedAllies.sortBy(_.name)) &&
+          assert(vertexCollections)(hasSameElements(List(countries)))
       },
       test("Add vertex collection to the graph") {
         for
@@ -258,9 +275,9 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
         for
           graph <- ArangoClientJson.graph(GraphName("geography2"))
           graphCreated <- graph.create(graphEdgeDefinitionsGeography2)
-          _ <- graph.addVertexCollection(oceans)
+          _ <- graph.addVertexCollection(oceans2)
           collectionsBefore <- graph.vertexCollections
-          _ <- graph.removeVertexCollection(oceans)
+          _ <- graph.removeVertexCollection(oceans2)
           collectionsAfter <- graph.vertexCollections
         yield assertTrue(collectionsBefore != collectionsAfter) && assertTrue(
           collectionsAfter == List(continents)
