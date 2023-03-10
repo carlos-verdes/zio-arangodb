@@ -73,6 +73,7 @@ trait ArangoExamples:
   val geographyCollection2 = CollectionName("geography2")
   val countries = CollectionName("countries")
   val continents = CollectionName("continents")
+  val continents2 = CollectionName("continents2")
   val oceans = CollectionName("oceans")
   val oceans2 = CollectionName("oceans2")
   val graphEdgeDefinitions = List(GraphEdgeDefinition(allies, List(countries), List(countries)))
@@ -80,7 +81,7 @@ trait ArangoExamples:
     GraphEdgeDefinition(geographyCollection, List(continents), List(continents))
   )
   val graphEdgeDefinitionsGeography2 = List(
-    GraphEdgeDefinition(geographyCollection2, List(continents), List(continents))
+    GraphEdgeDefinition(geographyCollection2, List(continents2), List(continents2))
   )
   val es = DocumentHandle(countries, DocumentKey("ES"))
   val fr = DocumentHandle(countries, DocumentKey("FR"))
@@ -205,17 +206,30 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
             .read[Pet]()
             .flip
             .debug("test collection doesn't exist")
-        yield assertTrue(error.code == 404L)
+        yield assertTrue(
+          error == ArangoError(404L, true, "collection or view not found: collectionDoesntExist", 1203L)
+        )
       },
       test("Manage document doesn't exist when fetching document") {
         for
-          invalidCollection <- ArangoClientJson.collection(CollectionName("countries"))
-          error <- invalidCollection
+          countriesCollection <- ArangoClientJson.collection(CollectionName("countries"))
+          error <- countriesCollection
             .document(DocumentKey("turtle"))
             .read[Pet]()
             .flip
             .debug("test document doesn't exist")
-        yield assertTrue(error.code == 404L)
+        yield assertTrue(error == ArangoError(404L, true, "document not found", 1202L))
+      },
+      test("Manage document doesn't exist when fetching raw documents") {
+        for
+          countriesCollection <- ArangoClientJson.collection(CollectionName("countries"))
+          error <- countriesCollection
+            .document(DocumentKey("turtle"))
+            .readRaw()
+            .flatMap(_.via(ZPipeline.utf8Decode).run(ZSink.collectAll))
+            .flip
+            .debug("test document raw doesn't exist")
+        yield assertTrue(error == ArangoError(404L, true, "document not found", 1202L))
       },
       test("Query documents with cursor") {
         for
@@ -280,7 +294,7 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           _ <- graph.removeVertexCollection(oceans2)
           collectionsAfter <- graph.vertexCollections
         yield assertTrue(collectionsBefore != collectionsAfter) && assertTrue(
-          collectionsAfter == List(continents)
+          collectionsAfter == List(continents2)
         )
       },
       test("Save and retrieve document from byte array stream") {

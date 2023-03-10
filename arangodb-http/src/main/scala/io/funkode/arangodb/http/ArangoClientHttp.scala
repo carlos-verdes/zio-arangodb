@@ -81,8 +81,10 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     yield response
 
   def getRaw(header: ArangoMessage.Header): AIO[ArangoStreamRaw] =
-    for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
-    yield response.body.asStream.handleStreamErrors
+    for
+      response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
+      parsedResponse <- parseResponseBodyRaw(response)
+    yield parsedResponse
 
   def get[O: Decoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
     for
@@ -95,8 +97,10 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
   ): AIO[ArangoStreamRaw] =
     val header = message.header.emptyRequest(BaseUrl, headers)
     val request: Request = header.copy(body = Body.fromStream(message.body))
-    for response <- httpClient.request(request).handleErrors
-    yield response.body.asStream.handleStreamErrors
+    for
+      response <- httpClient.request(request).handleErrors
+      parsedResponse <- parseResponseBodyRaw(response)
+    yield parsedResponse
 
   def command[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
     val header = message.header.emptyRequest(BaseUrl, headers)
@@ -124,6 +128,12 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     new ArangoClientHttp[Encoder, Decoder](newConfig, httpClient, token)
 
   private def parseResponseBody[O: Decoder](response: Response): AIO[O] =
+    parseResponseBodyInternal(response)(httpDecoder.decode[O])
+
+  private def parseResponseBodyRaw(response: Response): AIO[ArangoStreamRaw] =
+    parseResponseBodyInternal(response)(body => ZIO.succeed(body.asStream.handleStreamErrors))
+
+  private def parseResponseBodyInternal[O](response: Response)(onSucces: Body => AIO[O]): AIO[O] =
     if response.status.isError
     then
       httpDecoder
@@ -149,7 +159,7 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
           },
           arangoError => ZIO.fail(arangoError)
         )
-    else httpDecoder.decode[O](response.body)
+    else onSucces(response.body)
 
   def currentDatabase: DatabaseName = (config.database)
 
@@ -273,8 +283,8 @@ object extensions:
   extension [A](call: IO[Throwable, A])
     def handleErrors: IO[ArangoError, A] = call.catchAll(e => ZIO.fail(throwableToArangoError(e)))
 
-  extension [A](stream: Stream[Throwable, A])
-    def handleStreamErrors: ArangoStream[A] = stream.catchAll(e => ZStream.fail(throwableToArangoError(e)))
+  extension (stream: Stream[Throwable, Byte])
+    def handleStreamErrors: ArangoStreamRaw = stream.catchAll(e => ZStream.fail(throwableToArangoError(e)))
 
 object ArangoClientSchema:
 

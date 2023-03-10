@@ -90,3 +90,4 @@ project/metals.sbt
 coursier
 
 *.semanticdb
+nohup.*
