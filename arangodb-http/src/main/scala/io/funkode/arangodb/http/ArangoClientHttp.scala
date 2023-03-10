@@ -80,9 +80,9 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
     yield response
 
-  def getRaw(header: ArangoMessage.Header): AIO[ArangoStreamRaw] =
+  def getRaw(header: ArangoMessage.Header): ArangoStreamRaw =
     for
-      response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
+      response <- ZStream.fromZIO(httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors)
       parsedResponse <- parseResponseBodyRaw(response)
     yield parsedResponse
 
@@ -92,13 +92,11 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
       body <- parseResponseBody(response)
     yield ArangoMessage(response, body)
 
-  def commandRaw[Encoder[_], Decoder[_]](
-      message: ArangoMessage[ArangoStreamRaw]
-  ): AIO[ArangoStreamRaw] =
+  def commandRaw[Encoder[_], Decoder[_]](message: ArangoMessage[ArangoStreamRaw]): ArangoStreamRaw =
     val header = message.header.emptyRequest(BaseUrl, headers)
     val request: Request = header.copy(body = Body.fromStream(message.body))
     for
-      response <- httpClient.request(request).handleErrors
+      response <- ZStream.fromZIO(httpClient.request(request).handleErrors)
       parsedResponse <- parseResponseBodyRaw(response)
     yield parsedResponse
 
@@ -128,15 +126,17 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     new ArangoClientHttp[Encoder, Decoder](newConfig, httpClient, token)
 
   private def parseResponseBody[O: Decoder](response: Response): AIO[O] =
-    parseResponseBodyInternal(response)(httpDecoder.decode[O])
+    parseResponseBodyInternal[AIO, O](response)(httpDecoder.decode[O], e => e)
 
-  private def parseResponseBodyRaw(response: Response): AIO[ArangoStreamRaw] =
-    parseResponseBodyInternal(response)(body => ZIO.succeed(body.asStream.handleStreamErrors))
+  private def parseResponseBodyRaw(response: Response): ArangoStreamRaw =
+    parseResponseBodyInternal(response)(body => body.asStream.handleStreamErrors, ZStream.fromZIO)
 
-  private def parseResponseBodyInternal[O](response: Response)(onSucces: Body => AIO[O]): AIO[O] =
+  private def parseResponseBodyInternal[F[_], O](
+      response: Response
+  )(onSucces: Body => F[O], onFail: AIO[O] => F[O]): F[O] =
     if response.status.isError
     then
-      httpDecoder
+      val arangoErrorZIO = httpDecoder
         .decode[ArangoError](response.body)
         .foldCauseZIO(
           { case e =>
@@ -159,6 +159,7 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
           },
           arangoError => ZIO.fail(arangoError)
         )
+      onFail(arangoErrorZIO)
     else onSucces(response.body)
 
   def currentDatabase: DatabaseName = (config.database)

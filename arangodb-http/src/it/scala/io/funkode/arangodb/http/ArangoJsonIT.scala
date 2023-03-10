@@ -226,7 +226,8 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           error <- countriesCollection
             .document(DocumentKey("turtle"))
             .readRaw()
-            .flatMap(_.via(ZPipeline.utf8Decode).run(ZSink.collectAll))
+            .via(ZPipeline.utf8Decode)
+            .run(ZSink.collectAll)
             .flip
             .debug("test document raw doesn't exist")
         yield assertTrue(error == ArangoError(404L, true, "document not found", 1202L))
@@ -310,11 +311,15 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
               |  "name": "Petehar",
               |  "age": 12
               |}""".stripMargin.getBytes())
-          created <- documents.insertRaw(documentStream, true, true)
-          createdParsed <- JsonDecoder[CreatedPet].decodeJsonStreamInput(created)
+          createdParsed <- JsonDecoder[CreatedPet]
+            .decodeJsonStreamInput(
+              documents
+                .insertRaw(documentStream, true, true)
+            )
+          // createdParsed <- JsonDecoder[CreatedPet].decodeJsonStreamInput(created)
           insertedCount <- documents.count()
-          fetched <- document.readRaw()
-          fetchedParsed <- JsonDecoder[PetWithKey].decodeJsonStreamInput(fetched)
+          fetchedParsed <- JsonDecoder[PetWithKey].decodeJsonStreamInput(document.readRaw())
+          // fetchedParsed <- JsonDecoder[PetWithKey].decodeJsonStreamInput(fetched)
           head <- document.head()
           deletedDoc <- document.remove[Pet](true)
           countAfterDelete <- documents.count()

@@ -60,7 +60,7 @@ object ArangoMessage:
 
     def executeRaw[Encoder[_], Decoder[_]](using
         arangoClient: ArangoClient[Encoder, Decoder]
-    ): AIO[ArangoStreamRaw] =
+    ): ArangoStreamRaw =
       arangoClient.getBodyRaw(header)
 
     def executeIgnoreResult[O, Encoder[_], Decoder[_]](using
@@ -72,7 +72,7 @@ object ArangoMessage:
   extension (arangoMessage: ArangoMessage[ArangoStreamRaw])
     def executeRaw[Encoder[_], Decoder[_]](using
         arangoClient: ArangoClient[Encoder, Decoder]
-    ): AIO[ArangoStreamRaw] =
+    ): ArangoStreamRaw =
       arangoClient.commandBodyRaw(arangoMessage)
 
   extension [I](arangoMessage: ArangoMessage[I])
