@@ -42,7 +42,7 @@ class ArangoDocuments[Encoder[_], Decoder[_]](databaseName: DatabaseName, collec
       silent: Boolean = false,
       overwrite: Boolean = false,
       transaction: Option[TransactionId] = None
-  ): AIO[ArangoStreamRaw] =
+  ): ArangoStreamRaw =
     POST(
       database,
       path,
