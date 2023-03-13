@@ -205,7 +205,6 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
             .document(DocumentKey("turtle"))
             .read[Pet]()
             .flip
-            .debug("test collection doesn't exist")
         yield assertTrue(
           error == ArangoError(404L, true, "collection or view not found: collectionDoesntExist", 1203L)
         )
@@ -217,8 +216,16 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
             .document(DocumentKey("turtle"))
             .read[Pet]()
             .flip
-            .debug("test document doesn't exist")
         yield assertTrue(error == ArangoError(404L, true, "document not found", 1202L))
+      },
+      test("Manage document doesn't exist when fetching document head") {
+        for
+          countriesCollection <- ArangoClientJson.collection(CollectionName("countries"))
+          error <- countriesCollection
+            .document(DocumentKey("turtle"))
+            .head()
+            .flip
+        yield assertTrue(error == ArangoError(404L, true, "Incorrect status from server: 404. Body: ", -1))
       },
       test("Manage document doesn't exist when fetching raw documents") {
         for
@@ -229,7 +236,6 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
             .via(ZPipeline.utf8Decode)
             .run(ZSink.collectAll)
             .flip
-            .debug("test document raw doesn't exist")
         yield assertTrue(error == ArangoError(404L, true, "document not found", 1202L))
       },
       test("Query documents with cursor") {

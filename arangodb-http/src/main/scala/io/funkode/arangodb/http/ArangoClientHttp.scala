@@ -17,6 +17,7 @@ import zio.http.model.*
 import zio.http.model.Headers.BearerSchemeName
 import zio.http.model.Status.*
 import zio.json.*
+import zio.json.ast.*
 import zio.prelude.*
 import zio.schema.*
 import zio.schema.codec.*
@@ -77,8 +78,10 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
   def db: ArangoDatabase[Encoder, Decoder] = _db
 
   def head(header: ArangoMessage.Header): AIO[ArangoMessage.Header] =
-    for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
-    yield response
+    for
+      response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
+      validResponse <- handleResponseErrors(response)
+    yield validResponse
 
   def getRaw(header: ArangoMessage.Header): ArangoStreamRaw =
     for
@@ -126,17 +129,18 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     new ArangoClientHttp[Encoder, Decoder](newConfig, httpClient, token)
 
   private def parseResponseBody[O: Decoder](response: Response): AIO[O] =
-    parseResponseBodyInternal[AIO, O](response)(httpDecoder.decode[O], e => e)
+    handleResponseErrors(response).flatMap(response => httpDecoder.decode[O](response.body))
 
   private def parseResponseBodyRaw(response: Response): ArangoStreamRaw =
-    parseResponseBodyInternal(response)(body => body.asStream.handleStreamErrors, ZStream.fromZIO)
+    for
+      response <- ZStream.fromZIO(handleResponseErrors(response))
+      stream <- response.body.asStream.handleStreamErrors
+    yield stream
 
-  private def parseResponseBodyInternal[F[_], O](
-      response: Response
-  )(onSucces: Body => F[O], onFail: AIO[O] => F[O]): F[O] =
+  private def handleResponseErrors(response: Response): AIO[Response] =
     if response.status.isError
     then
-      val arangoErrorZIO = httpDecoder
+      httpDecoder
         .decode[ArangoError](response.body)
         .foldCauseZIO(
           { case e =>
@@ -159,8 +163,7 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
           },
           arangoError => ZIO.fail(arangoError)
         )
-      onFail(arangoErrorZIO)
-    else onSucces(response.body)
+    else ZIO.succeed(response)
 
   def currentDatabase: DatabaseName = (config.database)
 
