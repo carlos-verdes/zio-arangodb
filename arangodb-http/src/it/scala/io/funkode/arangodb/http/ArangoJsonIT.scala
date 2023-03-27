@@ -342,7 +342,6 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(countAfterDelete == 0L)
       }
     ).provideShared(
-      Scope.default,
       ArangoConfiguration.default,
       Client.default,
       ArangoClientJson.testContainers

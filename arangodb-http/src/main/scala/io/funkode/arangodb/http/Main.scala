@@ -11,7 +11,6 @@ import zio.*
 import zio.Console.*
 import zio.config.ReadError
 import zio.http.Client
-import zio.http.Middleware.*
 import zio.json.*
 
 object Main extends ZIOAppDefault:
@@ -49,7 +48,6 @@ object Main extends ZIOAppDefault:
 
   def run =
     app.provide(
-      Scope.default,
       Client.default,
       ArangoConfiguration.default,
       ArangoClientJson.live

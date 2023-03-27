@@ -325,7 +325,7 @@ object ArangoClientSchema:
 
   val schemaDecoderForHttp: HttpDecoder[Schema] = new HttpDecoder[Schema]:
     override def decode[R](body: Body)(using S: Schema[R]): AIO[R] =
-      body.asCharSeq
+      body.asString
         .catchAll { case t: Throwable =>
           ZIO.fail(ArangoError(500, true, "Error getting body from Arango response" + t.getMessage, -1))
         }
@@ -348,8 +348,8 @@ object ArangoClientSchema:
       config,
       httpClient,
       token
-    )(
-      using schemaEncoderForHttp,
+    )(using
+      schemaEncoderForHttp,
       schemaDecoderForHttp,
       given_Schema_Token,
       given_Schema_Token,
@@ -454,8 +454,8 @@ object ArangoClientJson:
       config,
       httpClient,
       token
-    )(
-      using jsonEncoderForHttp,
+    )(using
+      jsonEncoderForHttp,
       jsonDecoderForHttp,
       given_JsonCodec_Token.encoder,
       given_JsonCodec_Token.decoder,
