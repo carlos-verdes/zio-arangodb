@@ -28,14 +28,15 @@ trait ArangoExamples:
   case class Country(flag: String, name: String)
   case class Pet(name: String, age: Int)
   case class PatchAge(_key: DocumentKey, age: Int)
-  case class PetWithKey(_key: DocumentKey, name: String, age: Int) derives JsonCodec
-  case class CreatedPet(`new`: PetWithKey) derives JsonCodec
+  case class PetWithKey(_key: DocumentKey, name: String, age: Int)
+  case class CreatedPet(`new`: PetWithKey)
   case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle)
 
   given JsonCodec[Country] = DeriveJsonCodec.gen[Country]
   given JsonCodec[Pet] = DeriveJsonCodec.gen[Pet]
   given JsonCodec[PatchAge] = DeriveJsonCodec.gen[PatchAge]
   given JsonCodec[PetWithKey] = DeriveJsonCodec.gen[PetWithKey]
+  given JsonCodec[CreatedPet] = DeriveJsonCodec.gen[CreatedPet]
   given JsonCodec[Rel] = DeriveJsonCodec.gen[Rel]
 
   val testDatabaseName = DatabaseName("ittestdb")

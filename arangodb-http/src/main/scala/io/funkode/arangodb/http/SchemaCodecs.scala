@@ -72,14 +72,14 @@ object SchemaCodecs:
       ) => QueryResults(cached, count, extra, hasMore, id, result)
     )
 
-  given edge[T](using S: Schema[T]): Schema[GraphEdge[T]] =
+  given edgeSchema[T](using S: Schema[T]): Schema[GraphEdge[T]] =
     Schema.CaseClass1[T, GraphEdge[T]](
       TypeId.parse("io.funkode.arangodb.model.GraphEdge"),
       Schema.Field("edge", S, get0 = _.edge, (r, v) => r.copy(edge = v)),
       (edge: T) => GraphEdge(edge)
     )
 
-  given vertex[T](using S: Schema[T]): Schema[GraphVertex[T]] =
+  given vertexSchema[T](using S: Schema[T]): Schema[GraphVertex[T]] =
     Schema.CaseClass1[T, GraphVertex[T]](
       TypeId.parse("io.funkode.arangodb.model.GraphVertex"),
       Schema.Field("vertex", S, get0 = _.vertex, (r, v) => r.copy(vertex = v)),

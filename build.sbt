@@ -117,7 +117,7 @@ lazy val http =
     .dependsOn(arango, docker)
     .enablePlugins(AutomateHeaderPlugin)
 
-lazy val zioArangodb =
+lazy val root =
   project
     .in(file("."))
     .aggregate(arango, http, docker, velocypack)

@@ -39,16 +39,17 @@ object ArangoSchemaIT extends ZIOSpecDefault with ArangoExamplesSchemas:
       test("Get server info") {
         for
           serverVersion <- ArangoClientSchema.serverInfo().version()
+          // TODO waiting for PR to be merged https://github.com/zio/zio-schema/pull/534
           // serverVersionFull <- ArangoClientSchema.serverInfo().version(true)
           databases <- ArangoClientSchema.serverInfo().databases
-        // TODO review the Map("" -> "") after zio-schema fix issue with default Maps
-        yield assertTrue(serverVersion == ServerVersion("arango", "community", "3.10.1", Map("" -> ""))) &&
-          /*
-          assertTrue(serverVersionFull.version == "3.7.15") &&
+        yield assertTrue(serverVersion == ServerVersion("arango", "community", "3.10.1")) /*
+        TODO waiting for PR to be merged https://github.com/zio/zio-schema/pull/534
+         &&
+          assertTrue(serverVersionFull.version == "3.10.1") &&
           assertTrue(serverVersionFull.details.get("architecture") == Some("64bit")) &&
           assertTrue(serverVersionFull.details.get("mode") == Some("server")) &&
-           */
           assertTrue(Set(DatabaseName.system, DatabaseName("test")).subsetOf(databases.toSet))
+         */
       } /*,
       test("Create and drop a database") {
         for
@@ -187,5 +188,5 @@ object ArangoSchemaIT extends ZIOSpecDefault with ArangoExamplesSchemas:
       ArangoConfiguration.default,
       Client.default,
       ArangoClientSchema.testContainers
-    ) @@ TestAspect.ignore // updating dependencies broke JsonCodec from Schema
+    ) // @@ TestAspect.ignore // updating dependencies broke JsonCodec from Schema
 // @@ TestAspect.sequential
