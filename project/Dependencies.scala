@@ -43,7 +43,7 @@ object Dependencies {
     val zioTestSbt      = "dev.zio" %% "zio-test-sbt"          % zioV
 
     val logBack        = "ch.qos.logback"       % "logback-classic"            % logBackV
-    val jansi          = "org.fusesource.jansi" % "jansi"                      % "1.11"
+    val jansi          = "org.fusesource.jansi" % "jansi"                      % "1.18"
     val testContainers = "com.dimafeng"         %% "testcontainers-scala-core" % testContainersV
     val scalaUri       = "io.lemonlabs"         %% "scala-uri"                 % scalaUriV
     val scodecBits     = "org.scodec"           %% "scodec-bits"               % scodecV
