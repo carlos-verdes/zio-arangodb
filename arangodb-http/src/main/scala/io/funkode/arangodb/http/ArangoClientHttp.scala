@@ -321,20 +321,19 @@ object ArangoClientSchema:
 
   val schemaEncoderForHttp: HttpEncoder[Schema] = new HttpEncoder[Schema]:
     override def encode[R](r: R)(using S: Schema[R]) =
-      Body.fromCharSequence(zio.schema.codec.JsonCodec.jsonEncoder(S).encodeJson(r))
+      Body.fromCharSequence(zio.schema.codec.JsonCodec.jsonEncoder(S).encodeJson(r, None))
 
   val schemaDecoderForHttp: HttpDecoder[Schema] = new HttpDecoder[Schema]:
     override def decode[R](body: Body)(using S: Schema[R]): AIO[R] =
-      body.asString
-        .catchAll { case t: Throwable =>
-          ZIO.fail(ArangoError(500, true, "Error getting body from Arango response" + t.getMessage, -1))
-        }
-        .flatMap(s => ZIO.fromEither(zio.schema.codec.JsonCodec.jsonDecoder(S).decodeJson(s)))
+      zio.schema.codec.JsonCodec
+        .jsonDecoder(S)
+        .decodeJsonStreamInput(body.asStream)
         .catchAll { case t: Throwable =>
           for
             failedString <- body.asString.catchAll(e => ZIO.succeed("not able to read body: " + e.getMessage))
             errorMessage =
-              s"Error parsing JSON Arango response" + t.getMessage + s"\nBody: ${failedString} \nSchema: ${S.toString}"
+              s"Error parsing JSON Arango response: " + t.getMessage + s"\nBody: ${failedString} \nSchema: ${S.toString}"
+            _ <- ZIO.logErrorCause(errorMessage, Cause.fail(t))
             zioError <- ZIO.fail(ArangoError(500, true, errorMessage, -1))
           yield zioError
         }

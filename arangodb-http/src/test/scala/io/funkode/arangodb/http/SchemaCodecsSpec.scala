@@ -26,7 +26,7 @@ object SchemaCodecsSpec extends ZIOSpecDefault with SchemaExamples:
 
   override def spec: Spec[TestEnvironment, Any] =
     suite("Schema codecs should")(
-      test("Encode/Decode ArangoResult from json using schema") {
+      test("Decode ArangoResult from json using schema") {
         for
           _ <- ZIO.unit
           json = """{"error": true, "code": 300, "result": { "name": "Peter", "age": 19}}"""
@@ -37,15 +37,38 @@ object SchemaCodecsSpec extends ZIOSpecDefault with SchemaExamples:
           arangoResultPerson == ArangoResult(true, 300, Person("Peter", 19))
         )
       },
-      test("Encode/Decode ServerInfo from json using schema") {
+      test("Decode ServerInfo from json using schema") {
         for
           _ <- ZIO.unit
-          json = """{ "server": "arango", "license": "community", "version": "3.10.1"}"""
-          serverInfo <- ZIO.fromEither(
-            JsonCodec.jsonDecoder[ServerVersion](given_Schema_ServerVersion).decodeJson(json)
-          )
+          simpleServerInfoJson = """{ "server": "arango", "license": "community", "version": "3.10.1"}"""
+          fullServerInfoJson =
+            """{
+              |"server": "arango",
+              |"license": "community",
+              |"version": "3.10.1",
+              |"details": {
+              |  "architecture": "64bit",
+              |  "mode": "server"
+              |}}""".stripMargin
+          simpleServerInfo <- ZIO.fromEither(
+            JsonCodec.jsonDecoder[ServerVersion](given_Schema_ServerVersion).decodeJson(simpleServerInfoJson)
+          ) /*
+          TODO waiting for PR to be merged https://github.com/zio/zio-schema/pull/534
+          fullServerInfo <- ZIO.fromEither(
+            JsonCodec.jsonDecoder[ServerVersion](given_Schema_ServerVersion).decodeJson(fullServerInfoJson)
+          )*/
         yield assertTrue(
-          serverInfo == ServerVersion("arango", "community", "3.10.1")
-        )
+          simpleServerInfo == ServerVersion("arango", "community", "3.10.1")
+        ) /*
+         TODO waiting for PR to be merged https://github.com/zio/zio-schema/pull/534
+        &&
+          assertTrue(
+            fullServerInfo ==
+              ServerVersion(
+                  "arango",
+                  "community",
+                  "3.10.1",
+                  Map("architecture" -> "64bit", "mode" -> "server"))
+        )*/
       }
-    ) @@ TestAspect.ignore
+    )
