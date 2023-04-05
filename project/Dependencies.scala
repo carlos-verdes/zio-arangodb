@@ -16,9 +16,9 @@ object Dependencies {
     val zioSchemaV = "0.4.10"
 
     val logBackV = "1.4.6"
-    val scalaUriV = "4.0.2"
-    val scodecV = "2.2.0"
-    val testContainersV = "0.40.10"
+    val scalaUriV = "4.0.3"
+    val scodecV = "2.2.1"
+    val testContainersV = "0.40.14"
   }
 
   object Libraries {
@@ -43,7 +43,7 @@ object Dependencies {
     val zioTestSbt      = "dev.zio" %% "zio-test-sbt"          % zioV
 
     val logBack        = "ch.qos.logback"       % "logback-classic"            % logBackV
-    val jansi          = "org.fusesource.jansi" % "jansi"                      % "1.11"
+    val jansi          = "org.fusesource.jansi" % "jansi"                      % "1.18"
     val testContainers = "com.dimafeng"         %% "testcontainers-scala-core" % testContainersV
     val scalaUri       = "io.lemonlabs"         %% "scala-uri"                 % scalaUriV
     val scodecBits     = "org.scodec"           %% "scodec-bits"               % scodecV
