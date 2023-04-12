@@ -12,13 +12,14 @@ import zio.json.JsonDecoder.{JsonError, UnsafeJson}
 import zio.json.ast.*
 import zio.json.internal.*
 
-import io.funkode.arangodb.http.CombineJsonDecoders.combine
 import io.funkode.velocypack.*
+import CombineJsonDecoders.combine
 
 object JsonCodecs:
 
-  import model.*
   import VPack.*
+  import model.*
+  import model.IndexGeoFields.*
 
   given JsonCodec[ArangoError] = DeriveJsonCodec.gen[ArangoError]
   given JsonCodec[ArangoRequestStatus] = DeriveJsonCodec.gen[ArangoRequestStatus]
@@ -33,6 +34,9 @@ object JsonCodecs:
   given JsonCodec[CollectionCreate.KeyOptions] = DeriveJsonCodec.gen[CollectionCreate.KeyOptions]
   given JsonCodec[CollectionCreate] = DeriveJsonCodec.gen[CollectionCreate]
   given JsonCodec[CollectionInfo] = DeriveJsonCodec.gen[CollectionInfo]
+  given JsonCodec[IndexCreate] = DeriveJsonCodec.gen[IndexCreate]
+  given JsonCodec[IndexInfo] = DeriveJsonCodec.gen[IndexInfo]
+  given JsonCodec[IndexesInfo] = DeriveJsonCodec.gen[IndexesInfo]
   given JsonCodec[QueryResults.Extra] = DeriveJsonCodec.gen[QueryResults.Extra]
   given JsonCodec[QueryResults.ExtraStats] = DeriveJsonCodec.gen[QueryResults.ExtraStats]
   given queryResultsJsonCodec[O](using JsonCodec[O]): JsonCodec[QueryResults[O]] =
@@ -59,6 +63,7 @@ object JsonCodecs:
 
   // opaque string based types
   given JsonCodec[DatabaseName] = DeriveOpaqueTypeCodec.gen(DatabaseName.apply, DatabaseName.unwrap)
+  given JsonCodec[IndexName] = DeriveOpaqueTypeCodec.gen(IndexName.apply, IndexName.unwrap)
   given JsonCodec[CollectionName] = DeriveOpaqueTypeCodec.gen(CollectionName.apply, CollectionName.unwrap)
   given JsonCodec[DocumentKey] = DeriveOpaqueTypeCodec.gen(DocumentKey.apply, DocumentKey.unwrap)
   given JsonCodec[DocumentRevision] =
@@ -75,6 +80,25 @@ object JsonCodecs:
   // special types
   given JsonCodec[DocumentHandle] =
     DeriveOpaqueTypeCodec.gen((s: String) => DocumentHandle.parse(s).get, DocumentHandle.unwrap)
+
+  given JsonCodec[IndexHandle] =
+    DeriveOpaqueTypeCodec.gen((s: String) => IndexHandle.parse(s).get, IndexHandle.unwrap)
+
+  given JsonCodec[IndexGeoFields] =
+    JsonCodec
+      .list[String]
+      .transformOrFail(
+        {
+          case List(locationName) => Right(Location(locationName))
+          case List(latitudeName, longitudeName, _*) =>
+            Right(LatLong(latitudeName, longitudeName))
+          case Nil => Left("Unexpected empty fields list")
+        },
+        {
+          case Location(locationName)               => List(locationName)
+          case LatLong(latitudeName, longitudeName) => List(latitudeName, longitudeName)
+        }
+      )
 
   given vobjectEncoder: JsonEncoder[VObject] = JsonEncoder[Map[String, VPack]].contramap(_.values)
 
