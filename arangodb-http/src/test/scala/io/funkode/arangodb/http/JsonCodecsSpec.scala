@@ -12,14 +12,118 @@ import zio.json.*
 import zio.test.*
 import zio.test.Assertion.equalTo
 
-import io.funkode.arangodb.model.{ArangoError, ArangoResponse}
-import model.{ArangoRequestStatus, ArangoResponse, CollectionName, CollectionType, GraphCollections}
 import JsonCodecs.given
+import model.*
 
 object JsonCodecsSpec extends ZIOSpecDefault:
 
   override def spec: Spec[TestEnvironment, Any] =
     suite("Json codecs should")(
+      test("Decode index info from json") {
+        for
+          edge <- ZIO.fromEither(
+            """{"type":"edge","id":"cName/123","name":"iName"}"""
+              .fromJson[IndexInfo]
+          )
+          fulltext <- ZIO.fromEither(
+            """{"type":"fulltext","id":"cName/123","name":"iName"}"""
+              .fromJson[IndexInfo]
+          )
+          geoLocation <- ZIO.fromEither(
+            """{"type":"geo","id":"cName/123","name":"iName","fields":["loc"],"geoJson":true}"""
+              .fromJson[IndexInfo]
+          )
+          geoLatLong <- ZIO.fromEither(
+            """{"type":"geo","id":"cName/123","name":"iName","fields":["lat","long"],"geoJson":false}"""
+              .fromJson[IndexInfo]
+          )
+          inverted <- ZIO.fromEither(
+            """{"type":"inverted","id":"cName/123","name":"iName"}"""
+              .fromJson[IndexInfo]
+          )
+          zkd <- ZIO.fromEither(
+            """{"type":"zkd","id":"cName/123","name":"iName"}"""
+              .fromJson[IndexInfo]
+          )
+          persistent <- ZIO.fromEither(
+            """{"type":"persistent","id":"cName/123","name":"iName"}"""
+              .fromJson[IndexInfo]
+          )
+          primary <- ZIO.fromEither(
+            """{"type":"primary","id":"cName/123","name":"iName"}"""
+              .fromJson[IndexInfo]
+          )
+          ttl <- ZIO.fromEither(
+            """{"type":"ttl","id":"cName/123","name":"iName"}"""
+              .fromJson[IndexInfo]
+          )
+        yield assertTrue(
+          edge == IndexInfo.Edge(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName")
+          )
+        ) && assertTrue(
+          fulltext == IndexInfo.Fulltext(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName")
+          )
+        ) && assertTrue(
+          geoLocation == IndexInfo.Geo(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName"),
+            IndexGeoFields.Location("loc"),
+            true
+          )
+        ) && assertTrue(
+          geoLatLong == IndexInfo.Geo(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName"),
+            IndexGeoFields.LatLong("lat", "long"),
+            false
+          )
+        ) && assertTrue(
+          inverted == IndexInfo.Inverted(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName")
+          )
+        ) && assertTrue(
+          zkd == IndexInfo.MultiDimensional(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName")
+          )
+        ) && assertTrue(
+          persistent == IndexInfo.Persistent(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName")
+          )
+        ) && assertTrue(
+          primary == IndexInfo.Primary(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName")
+          )
+        ) && assertTrue(
+          ttl == IndexInfo.TimeToLive(
+            IndexHandle(CollectionName("cName"), IndexId("123")),
+            IndexName("iName")
+          )
+        )
+      },
+      test("Encode index creation data to json") {
+        val geoLocation = IndexCreate.Geo
+          .location(IndexName("iName"), "loc", Some(true), Some(true))
+          .asInstanceOf[IndexCreate]
+          .toJson
+        val geoLatLong = IndexCreate.Geo
+          .latLong(IndexName("iName"), "lat", "long", Some(false))
+          .asInstanceOf[IndexCreate]
+          .toJson
+        assertTrue(
+          geoLocation == """{"type":"geo","name":"iName","fields":["loc"],"geoJson":true,"inBackground":true}"""
+        ) &&
+        assertTrue(
+          geoLatLong == """{"type":"geo","name":"iName","fields":["lat","long"],"inBackground":false}"""
+        )
+      },
       test("Encode/Decode collection type from json") {
         for
           unknownType <- ZIO.fromEither("0".fromJson[CollectionType])

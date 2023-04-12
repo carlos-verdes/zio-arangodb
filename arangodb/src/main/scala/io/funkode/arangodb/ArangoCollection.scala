@@ -82,11 +82,19 @@ class ArangoCollection[Encoder[_], Decoder[_]](databaseName: DatabaseName, colle
 
   def document(key: DocumentKey): ArangoDocument[Encoder, Decoder] =
     new ArangoDocument[Encoder, Decoder](databaseName, DocumentHandle(this.name, key))
+
+  def indexes: ArangoIndexes[Encoder, Decoder] =
+    new ArangoIndexes[Encoder, Decoder](databaseName, collectionName)
+
+  def index(id: IndexId): ArangoIndex[Encoder, Decoder] =
+    new ArangoIndex[Encoder, Decoder](databaseName, collectionName, id)
+
+  def findIndexByName(
+      name: IndexName
+  )(using Decoder[IndexesInfo]): ZIO[Any, ArangoError, Option[ArangoIndex[Encoder, Decoder]]] =
+    indexes.infos.map(_.find(_.name == name).map(info => index(info.handle.id)))
+
 /*
-  def indexes: ArangoIndexes[F]
-
-  def index(id: String): ArangoIndex[F]
-
   def all: ArangoQuery[F, VObject]
  */
 

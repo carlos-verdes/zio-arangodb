@@ -7,17 +7,19 @@
 package io.funkode.arangodb
 package http
 
-import io.funkode.velocypack.{VPack, VPackEncoder}
 import zio.*
 import zio.http.Client
 import zio.json.*
+import zio.stream.*
 import zio.test.*
 import zio.test.Assertion.*
-import zio.stream.*
+
+import io.funkode.arangodb.http.Main.Rel
 import model.*
+import IndexGeoFields.*
 import protocol.*
 import ArangoMessage.*
-import io.funkode.arangodb.http.Main.Rel
+import io.funkode.velocypack.{VPack, VPackEncoder}
 
 trait ArangoExamples:
 
@@ -46,6 +48,8 @@ trait ArangoExamples:
   val petsCollection = CollectionName("pets")
   val pets2Collection = CollectionName("pets2")
   val streamCollection = CollectionName("stream-test")
+
+  val someIndexName = IndexName("someIndex")
 
   val pet1 = Pet("dog", 2)
   val pet2 = Pet("cat", 3)
@@ -341,6 +345,78 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           ) &&
           assertTrue(deletedDoc._key == key) &&
           assertTrue(countAfterDelete == 0L)
+      },
+      test("Create geo index with one field") {
+        val collectionName = CollectionName("c1")
+        for
+          collection <- ArangoClientJson.collection(collectionName).create()
+          indexes = collection.indexes
+          infoFromCreate <- indexes.create(
+            IndexCreate.Geo.location(someIndexName, "loc", Some(true))
+          )
+          maybeInfoFromIndexes <- indexes.infos.map(_.find(_.name == someIndexName))
+          _ <- collection.drop()
+        yield
+          val expectedInfo = IndexInfo.Geo(
+            IndexHandle(collectionName, infoFromCreate.handle.id),
+            someIndexName,
+            Location("loc"),
+            true
+          )
+          assertTrue(infoFromCreate == expectedInfo) &&
+          assertTrue(maybeInfoFromIndexes.contains(expectedInfo))
+      },
+      test("Create geo index with two fields") {
+        val collectionName = CollectionName("c2")
+        for
+          collection <- ArangoClientJson.collection(collectionName).create()
+          indexes = collection.indexes
+          infoFromCreate <- indexes.create(
+            IndexCreate.Geo.latLong(someIndexName, "lat", "long")
+          )
+          maybeInfoFromIndexes <- indexes.infos.map(_.find(_.name == someIndexName))
+          _ <- collection.drop()
+        yield
+          val expectedInfo = IndexInfo.Geo(
+            IndexHandle(collectionName, infoFromCreate.handle.id),
+            someIndexName,
+            LatLong("lat", "long"),
+            false
+          )
+          assertTrue(infoFromCreate == expectedInfo) &&
+          assertTrue(maybeInfoFromIndexes.contains(expectedInfo))
+      },
+      test("Get index by name") {
+        val collectionName = CollectionName("c3")
+        for
+          collection <- ArangoClientJson.collection(collectionName).createEdge()
+          maybeIndex <- collection.findIndexByName(IndexName.edge)
+          index = maybeIndex.get
+          info <- index.info
+          _ <- collection.drop()
+        yield assertTrue(
+          info == IndexInfo.Edge(
+            index.handle,
+            IndexName.edge
+          )
+        )
+      },
+      test("Drop index") {
+        for
+          collection <- ArangoClientJson.collection(CollectionName("c4")).create()
+          indexes = collection.indexes
+          infoFromCreate <- indexes.create(IndexCreate.Geo.location(someIndexName, "loc"))
+          indexesCountBeforeDelete <- indexes.infos.map(_.length)
+          foundIndexBeforeDelete <- collection.findIndexByName(someIndexName)
+          index = collection.index(infoFromCreate.handle.id)
+          handleFromDrop <- index.drop
+          indexesCountAfterDelete <- indexes.infos.map(_.length)
+          foundIndexAfterDelete <- collection.findIndexByName(someIndexName)
+          _ <- collection.drop()
+        yield assertTrue(indexesCountBeforeDelete == indexesCountAfterDelete + 1) &&
+          assertTrue(handleFromDrop == infoFromCreate.handle) &&
+          assertTrue(foundIndexBeforeDelete.isDefined) &&
+          assertTrue(foundIndexAfterDelete.isEmpty)
       }
     ).provideShared(
       ArangoConfiguration.default,
