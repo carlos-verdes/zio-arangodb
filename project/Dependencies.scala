@@ -13,7 +13,7 @@ object Dependencies {
     val zioConfTypesafeV = "3.0.7"
     val zioCryptoV = "0.0.1"
     val zioPreludeV = "1.0.0-RC18"
-    val zioSchemaV = "0.4.10"
+    val zioSchemaV = "0.4.11"
 
     val logBackV = "1.4.6"
     val scalaUriV = "4.0.3"
