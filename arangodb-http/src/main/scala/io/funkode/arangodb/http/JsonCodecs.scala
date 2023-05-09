@@ -49,12 +49,21 @@ object JsonCodecs:
   given JsonCodec[VertexCollectionCreate] = DeriveJsonCodec.gen[VertexCollectionCreate]
   given JsonCodec[GraphCreate] = DeriveJsonCodec.gen[GraphCreate]
   given edge[T](using JsonCodec[T]): JsonCodec[GraphEdge[T]] = DeriveJsonCodec.gen[GraphEdge[T]]
+  given edgeDocumentCreated[T](using JsonCodec[T]): JsonCodec[EdgeDocumentCreated[T]] =
+    DeriveJsonCodec.gen[EdgeDocumentCreated[T]]
+  given edgeDocumentDeleted[T](using JsonCodec[T]): JsonCodec[EdgeDocumentDeleted[T]] =
+    DeriveJsonCodec.gen[EdgeDocumentDeleted[T]]
   given JsonCodec[GraphEdgeDefinition] = DeriveJsonCodec.gen[GraphEdgeDefinition]
   given JsonCodec[GraphInfo] = DeriveJsonCodec.gen[GraphInfo]
   given JsonCodec[GraphInfo.Response] = DeriveJsonCodec.gen[GraphInfo.Response]
   given JsonCodec[GraphList] = DeriveJsonCodec.gen[GraphList]
   given vertex[T](using JsonCodec[T]): JsonCodec[GraphVertex[T]] = DeriveJsonCodec.gen[GraphVertex[T]]
+  given vertexCreated[T](using JsonCodec[T]): JsonCodec[VertexDocumentCreated[T]] =
+    DeriveJsonCodec.gen[VertexDocumentCreated[T]]
+  given vertexDeleted[T](using JsonCodec[T]): JsonCodec[VertexDocumentDeleted[T]] =
+    DeriveJsonCodec.gen[VertexDocumentDeleted[T]]
   given doc[T: JsonCodec]: JsonCodec[Document[T]] = DeriveJsonCodec.gen[Document[T]]
+  given JsonCodec[DocumentMetadata] = DeriveJsonCodec.gen[DocumentMetadata]
   given JsonCodec[Query.Options] = DeriveJsonCodec.gen[Query.Options]
   given JsonEncoder[Query] = DeriveJsonEncoder.gen[Query]
   given JsonCodec[ServerVersion] = DeriveJsonCodec.gen[ServerVersion]

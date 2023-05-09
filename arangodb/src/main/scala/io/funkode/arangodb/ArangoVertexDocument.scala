@@ -10,7 +10,7 @@ import model.*
 import protocol.*
 import ArangoMessage.*
 
-class ArangoGraphVertex[Encoder[_], Decoder[_]](
+class ArangoVertexDocument[Encoder[_], Decoder[_]](
     database: DatabaseName,
     graph: GraphName,
     documentHandle: DocumentHandle
@@ -35,3 +35,22 @@ class ArangoGraphVertex[Encoder[_], Decoder[_]](
       ).collectDefined
     ).executeIgnoreResult[GraphVertex[T], Encoder, Decoder]
       .map(_.vertex)
+
+  def remove[T](
+      waitForSync: Boolean = false,
+      returnOld: Boolean = false,
+      ifMatch: Option[String] = None,
+      transaction: Option[TransactionId] = None
+  )(using Decoder[VertexDocumentDeleted[T]]): AIO[VertexDocumentDeleted[T]] =
+    DELETE(
+      database,
+      path,
+      Map(
+        "waitForSync" -> waitForSync.toString,
+        "returnOld" -> returnOld.toString
+      ),
+      Map(
+        "If-Match" -> ifMatch,
+        Transaction.Key -> transaction.map(_.unwrap)
+      ).collectDefined
+    ).execute

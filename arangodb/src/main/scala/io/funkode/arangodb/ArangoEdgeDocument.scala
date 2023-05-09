@@ -10,7 +10,7 @@ import model.*
 import protocol.*
 import ArangoMessage.*
 
-class ArangoGraphEdge[Encoder[_], Decoder[_]](
+class ArangoEdgeDocument[Encoder[_], Decoder[_]](
     database: DatabaseName,
     graph: GraphName,
     documentHandle: DocumentHandle
@@ -34,3 +34,22 @@ class ArangoGraphEdge[Encoder[_], Decoder[_]](
       ).collectDefined
     ).executeIgnoreResult[GraphEdge[T], Encoder, Decoder]
       .map(_.edge)
+
+  def remove[T](
+      waitForSync: Boolean = false,
+      returnOld: Boolean = false,
+      ifMatch: Option[String] = None,
+      transaction: Option[TransactionId] = None
+  )(using Decoder[EdgeDocumentDeleted[T]]): AIO[EdgeDocumentDeleted[T]] =
+    DELETE(
+      database,
+      path,
+      Map(
+        "waitForSync" -> waitForSync.toString,
+        "returnOld" -> returnOld.toString
+      ),
+      Map(
+        "If-Match" -> ifMatch,
+        Transaction.Key -> transaction.map(_.unwrap)
+      ).collectDefined
+    ).execute

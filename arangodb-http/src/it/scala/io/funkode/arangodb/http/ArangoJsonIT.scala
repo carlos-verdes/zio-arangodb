@@ -33,6 +33,8 @@ trait ArangoExamples:
   case class PetWithKey(_key: DocumentKey, name: String, age: Int)
   case class CreatedPet(`new`: PetWithKey)
   case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle)
+  case class Car(_key: String, make: String, model: String)
+  case class Customer(_key: String, name: String)
 
   given JsonCodec[Country] = DeriveJsonCodec.gen[Country]
   given JsonCodec[Pet] = DeriveJsonCodec.gen[Pet]
@@ -40,6 +42,8 @@ trait ArangoExamples:
   given JsonCodec[PetWithKey] = DeriveJsonCodec.gen[PetWithKey]
   given JsonCodec[CreatedPet] = DeriveJsonCodec.gen[CreatedPet]
   given JsonCodec[Rel] = DeriveJsonCodec.gen[Rel]
+  given JsonCodec[Car] = DeriveJsonCodec.gen[Car]
+  given JsonCodec[Customer] = DeriveJsonCodec.gen[Customer]
 
   val testDatabaseName = DatabaseName("ittestdb")
   val testDatabase = DatabaseInfo(testDatabaseName.unwrap, testDatabaseName.unwrap, "", false)
@@ -94,6 +98,22 @@ trait ArangoExamples:
   val alliesOfEs = List(Rel("ally", es, fr), Rel("ally", es, us), Rel("ally", us, fr))
   val expectedAllies =
     List(Country("\uD83C\uDDEB\uD83C\uDDF7", "France"), Country("\uD83C\uDDFA\uD83C\uDDF8", "United States"))
+
+  val dealershipGraphName = GraphName("dealership")
+  val customersCollection = CollectionName("clients")
+  val carsCollection = CollectionName("cars")
+  val customerRelsEdgeCollection = CollectionName("cars-rels")
+
+  extension (car: Car) def docHandle: DocumentHandle = DocumentHandle(carsCollection, DocumentKey(car._key))
+
+  extension (customer: Customer)
+    def docHandle: DocumentHandle = DocumentHandle(customersCollection, DocumentKey(customer._key))
+
+  val carHonda = Car("123", "Honda", "Civic")
+  val carMercedes = Car("1", "Mercedes", "GLE")
+  val carFord = Car("2", "Ford", "Ecosport")
+
+  val customerRoger = Customer("abc", "Roger")
 
 object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
 
@@ -289,10 +309,42 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(resultQuery.sortBy(_.name) == expectedAllies.sortBy(_.name)) &&
           assert(vertexCollections)(hasSameElements(List(countries)))
       },
+      test("Delete edge when vertex document is deleted") {
+        for
+          graph <- ArangoClientJson.graph(dealershipGraphName)
+          _ <- graph.create()
+          _ <- graph.addVertexCollection(carsCollection)
+          _ <- graph.addVertexCollection(customersCollection)
+          _ <- graph.addEdgeCollection(
+            customerRelsEdgeCollection,
+            List(customersCollection),
+            List(carsCollection)
+          )
+          cars = graph.vertex(carsCollection)
+          customers = graph.vertex(customersCollection)
+          customerRels = graph.edge(customerRelsEdgeCollection)
+          _ <- customers.createVertexDocument(customerRoger)
+          _ <- cars.createVertexDocument(carMercedes)
+          _ <- cars.createVertexDocument(carFord)
+          _ <- customerRels.createEdgeDocument(Rel("owns", customerRoger.docHandle, carMercedes.docHandle))
+          _ <- customerRels.createEdgeDocument(Rel("owns", customerRoger.docHandle, carFord.docHandle))
+          carsOwnedByRogerQuery =
+            ArangoClientJson.db
+              .query(
+                Query("FOR c IN OUTBOUND @startVertex @@edge RETURN c")
+                  .bindVar("startVertex", VString(customerRoger.docHandle.unwrap))
+                  .bindVar("@edge", VString(customerRelsEdgeCollection.unwrap))
+              )
+          ownerWithTwoCars <- carsOwnedByRogerQuery.execute[Car].map(_.result)
+          _ <- graph.vertexDocument(carMercedes.docHandle).remove[Car]()
+          ownerSoldFirstCar <- carsOwnedByRogerQuery.execute[Car].map(_.result)
+        yield assertTrue(ownerWithTwoCars.sortBy(_._key) == List(carMercedes, carFord)) &&
+          assertTrue(ownerSoldFirstCar.sortBy(_._key) == List(carFord))
+      },
       test("Add vertex collection to the graph") {
         for
           graph <- ArangoClientJson.graph(geography)
-          graphCreated <- graph.create(graphEdgeDefinitionsGeography)
+          _ <- graph.create(graphEdgeDefinitionsGeography)
           _ <- graph.addVertexCollection(oceans)
           collections <- graph.vertexCollections
         yield assert(collections)(hasSameElements(List(oceans, continents)))
@@ -300,7 +352,7 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
       test("Remove vertex collection") {
         for
           graph <- ArangoClientJson.graph(GraphName("geography2"))
-          graphCreated <- graph.create(graphEdgeDefinitionsGeography2)
+          _ <- graph.create(graphEdgeDefinitionsGeography2)
           _ <- graph.addVertexCollection(oceans2)
           collectionsBefore <- graph.vertexCollections
           _ <- graph.removeVertexCollection(oceans2)

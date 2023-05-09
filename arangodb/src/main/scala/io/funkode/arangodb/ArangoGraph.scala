@@ -20,6 +20,7 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
 
   private val path = ApiGharialPath.addPart(graphName.unwrap)
   private val vertexPath = path.addPart("vertex")
+  private val edgePath = path.addPart("edge")
 
   def create(
       edgeDefinitions: List[GraphEdgeDefinition] = List.empty,
@@ -74,11 +75,41 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
       )
     ).execute[ArangoResponse[GraphInfo.Response], Encoder, Decoder].map(_.result.graph)
 
-  def collection(collection: CollectionName): ArangoGraphCollection[Encoder, Decoder] =
-    new ArangoGraphCollection[Encoder, Decoder](database, name, collection)
+  def edgeCollections(using Decoder[ArangoResponse[GraphCollections]]): AIO[List[CollectionName]] =
+    GET(database, edgePath)
+      .execute[ArangoResponse[GraphCollections], Encoder, Decoder]
+      .map(_.result.collections)
 
-  def vertex(handle: DocumentHandle): ArangoGraphVertex[Encoder, Decoder] =
-    new ArangoGraphVertex[Encoder, Decoder](database, name, handle)
+  def addEdgeCollection(
+      collection: CollectionName,
+      from: List[CollectionName],
+      to: List[CollectionName]
+  )(using Encoder[GraphEdgeDefinition], Decoder[ArangoResponse[GraphInfo.Response]]): AIO[GraphInfo] =
+    POST(database, edgePath)
+      .withBody(GraphEdgeDefinition(collection, from, to))
+      .execute[ArangoResponse[GraphInfo.Response], Encoder, Decoder]
+      .map(_.result.graph)
 
-  def edge(handle: DocumentHandle): ArangoGraphEdge[Encoder, Decoder] =
-    new ArangoGraphEdge[Encoder, Decoder](database, name, handle)
+  def removeEdgeCollection(
+      collection: CollectionName,
+      dropCollections: Boolean = false
+  )(using Decoder[ArangoResponse[GraphInfo.Response]]): AIO[GraphInfo] =
+    DELETE(
+      database,
+      edgePath.addPart(collection.unwrap),
+      Map(
+        "dropCollections" -> dropCollections.toString
+      )
+    ).execute[ArangoResponse[GraphInfo.Response], Encoder, Decoder].map(_.result.graph)
+
+  def vertex(collectionName: CollectionName): ArangoVertexCollection[Encoder, Decoder] =
+    new ArangoVertexCollection[Encoder, Decoder](database, name, collectionName)
+
+  def vertexDocument(handle: DocumentHandle): ArangoVertexDocument[Encoder, Decoder] =
+    new ArangoVertexDocument[Encoder, Decoder](database, name, handle)
+
+  def edge(collectionName: CollectionName): ArangoEdgeCollection[Encoder, Decoder] =
+    new ArangoEdgeCollection[Encoder, Decoder](database, name, collectionName)
+
+  def edgeInstance(handle: DocumentHandle): ArangoEdgeDocument[Encoder, Decoder] =
+    new ArangoEdgeDocument[Encoder, Decoder](database, name, handle)
