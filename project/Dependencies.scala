@@ -18,7 +18,7 @@ object Dependencies {
     val logBackV = "1.4.6"
     val scalaUriV = "4.0.3"
     val scodecV = "2.2.1"
-    val testContainersV = "0.40.14"
+    val testContainersV = "0.40.16"
   }
 
   object Libraries {
