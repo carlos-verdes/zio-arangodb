@@ -188,5 +188,5 @@ object ArangoSchemaIT extends ZIOSpecDefault with ArangoExamplesSchemas:
       ArangoConfiguration.default,
       Client.default,
       ArangoClientSchema.testContainers
-    ) // @@ TestAspect.ignore // updating dependencies broke JsonCodec from Schema
+    ) @@ TestAspect.ignore // updating dependencies broke JsonCodec from Schema
 // @@ TestAspect.sequential

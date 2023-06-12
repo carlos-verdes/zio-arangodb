@@ -8,7 +8,6 @@ package io.funkode.arangodb.http
 
 import zio.*
 import zio.http.*
-import zio.http.model.*
 import zio.json.{DeriveJsonCodec, JsonCodec}
 import zio.test.*
 import zio.test.Assertion.*

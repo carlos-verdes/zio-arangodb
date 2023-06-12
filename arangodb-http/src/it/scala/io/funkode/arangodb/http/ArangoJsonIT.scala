@@ -8,14 +8,13 @@ package io.funkode.arangodb
 package http
 
 import zio.*
-import zio.http.Client
+import zio.http.{Client, ZClientAspect}
 import zio.json.*
 import zio.stream.*
 import zio.test.*
 import zio.test.Assertion.*
-
 import io.funkode.arangodb.http.Main.Rel
-import model.*
+import io.funkode.arangodb.model.*
 import IndexGeoFields.*
 import protocol.*
 import ArangoMessage.*
@@ -368,12 +367,24 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           key = DocumentKey("tobby")
           document = createdCollection.document(key)
           beforeCount <- documents.count()
-          documentStream = ZStream.fromIterable("""
+          documentString =
+            """
               |{
               |  "_key": "tobby",
               |  "name": "Petehar",
               |  "age": 12
-              |}""".stripMargin.getBytes())
+              |}""".stripMargin
+          documentStream = ZStream.fromIterable(documentString.getBytes())
+          createdParsed2 <- documents.insert[PetWithKey](
+            JsonDecoder[PetWithKey]
+              .decodeJson(documentString)
+              .getOrElse(PetWithKey(DocumentKey("_error"), "parsing", -1))
+          )
+          _ <- ZIO.succeed(
+            println(
+              s"created with normal json $createdParsed2, content size: ${documentString.getBytes().length}"
+            )
+          )
           createdParsed <- JsonDecoder[CreatedPet]
             .decodeJsonStreamInput(
               documents
@@ -474,4 +485,4 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
       ArangoConfiguration.default,
       Client.default,
       ArangoClientJson.testContainers
-    ) // @@ TestAspect.sequential
+    ) @@ TestAspect.timeout(30.seconds) // @@ TestAspect.sequential
