@@ -83,9 +83,8 @@ object ArangoContainer:
     Nothing,
     ArangoContainer
   ] =
-    ZLayer.scopedEnvironment {
+    ZLayer.scopedEnvironment:
       for
         config <- ZIO.service[ArangoConfiguration]
         container <- makeScopedContainer(config)
       yield ZEnvironment(container)
-    }

@@ -4,7 +4,7 @@ object Dependencies {
 
   object Versions {
 
-    val zioV = "2.0.10"
+    val zioV = "2.0.15"
     val zioConfigV = "3.0.2"
     val zioHttpV = "0.0.5"
     val zioLoggingV = "2.1.0"
@@ -12,13 +12,14 @@ object Dependencies {
     val zioConfMagnoliaV = "3.0.7"
     val zioConfTypesafeV = "3.0.7"
     val zioCryptoV = "0.0.1"
-    val zioPreludeV = "1.0.0-RC18"
-    val zioSchemaV = "0.4.10"
+    val zioPreludeV = "1.0.0-RC19"
+    val zioSchemaV = "0.4.12"
 
-    val logBackV = "1.4.6"
+    val logBackV = "1.4.7"
     val scalaUriV = "4.0.3"
     val scodecV = "2.2.1"
-    val testContainersV = "0.40.14"
+    val testContainersV = "0.40.16"
+    val jansiV = "2.4.0"
   }
 
   object Libraries {
@@ -43,7 +44,7 @@ object Dependencies {
     val zioTestSbt      = "dev.zio" %% "zio-test-sbt"          % zioV
 
     val logBack        = "ch.qos.logback"       % "logback-classic"            % logBackV
-    val jansi          = "org.fusesource.jansi" % "jansi"                      % "1.18"
+    val jansi          = "org.fusesource.jansi" % "jansi"                      % jansiV
     val testContainers = "com.dimafeng"         %% "testcontainers-scala-core" % testContainersV
     val scalaUri       = "io.lemonlabs"         %% "scala-uri"                 % scalaUriV
     val scodecBits     = "org.scodec"           %% "scodec-bits"               % scodecV
