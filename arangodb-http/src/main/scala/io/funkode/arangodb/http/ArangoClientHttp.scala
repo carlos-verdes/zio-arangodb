@@ -52,8 +52,7 @@ trait HttpDecoder[Decoder[_]]:
 
 class ArangoClientHttp[Encoder[_], Decoder[_]](
     config: ArangoConfiguration,
-    httpClient: Client,
-    token: Option[Token] = None
+    httpClient: Client
 )(using
     httpEncoder: HttpEncoder[Encoder],
     httpDecoder: HttpDecoder[Decoder],
@@ -70,8 +69,7 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
 
   private val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
 
-  private val headers =
-    token.map(_.jwt).map(Headers.bearerAuthorizationHeader).getOrElse(Headers.empty)
+  private val headers = Headers(Headers.basicAuthorizationHeader(config.username, config.password))
 
   private lazy val _db = new ArangoDatabase[Encoder, Decoder](config.database)(using this)
 
@@ -126,7 +124,7 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     yield token
 
   def withConfiguration(newConfig: ArangoConfiguration): ArangoClient[Encoder, Decoder] =
-    new ArangoClientHttp[Encoder, Decoder](newConfig, httpClient, token)
+    new ArangoClientHttp[Encoder, Decoder](newConfig, httpClient)
 
   private def parseResponseBody[O: Decoder](response: Response): AIO[O] =
     handleResponseErrors(response).flatMap(response => httpDecoder.decode[O](response.body))
@@ -340,13 +338,11 @@ object ArangoClientSchema:
 
   def arangoClientSchema(
       config: ArangoConfiguration,
-      httpClient: Client,
-      token: Option[Token] = None
+      httpClient: Client
   ): ArangoClientSchema =
     new ArangoClientHttp[Schema, Schema](
       config,
-      httpClient,
-      token
+      httpClient
     )(using
       schemaEncoderForHttp,
       schemaDecoderForHttp,
@@ -361,8 +357,7 @@ object ArangoClientSchema:
     ZLayer(for
       config <- ZIO.service[ArangoConfiguration]
       httpClient <- ZIO.service[Client]
-      token <- arangoClientSchema(config, httpClient).login(config.username, config.password)
-      arangoClient = arangoClientSchema(config, httpClient, Some(token))
+      arangoClient = arangoClientSchema(config, httpClient)
     yield arangoClient)
 
   val testContainers
@@ -376,8 +371,7 @@ object ArangoClientSchema:
           host = container.container.getHost.nn
         )
         httpClient <- ZIO.service[Client]
-        token <- arangoClientSchema(newConfig, httpClient).login(newConfig.username, newConfig.password)
-      yield ZEnvironment(arangoClientSchema(newConfig, httpClient, Some(token)), container)
+      yield ZEnvironment(arangoClientSchema(newConfig, httpClient), container)
     )
 
 object ArangoClientJson:
@@ -446,13 +440,11 @@ object ArangoClientJson:
 
   def arangoClientJson(
       config: ArangoConfiguration,
-      httpClient: Client,
-      token: Option[Token] = None
+      httpClient: Client
   ): ArangoClient[JsonEncoder, JsonDecoder] =
     new ArangoClientHttp[JsonEncoder, JsonDecoder](
       config,
-      httpClient,
-      token
+      httpClient
     )(using
       jsonEncoderForHttp,
       jsonDecoderForHttp,
@@ -467,8 +459,7 @@ object ArangoClientJson:
     ZLayer(for
       config <- ZIO.service[ArangoConfiguration]
       httpClient <- ZIO.service[Client]
-      token <- arangoClientJson(config, httpClient).login(config.username, config.password)
-      arangoClient = arangoClientJson(config, httpClient, Some(token))
+      arangoClient = arangoClientJson(config, httpClient)
     yield arangoClient)
 
   val testContainers: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientJson & ArangoContainer] =
@@ -481,6 +472,5 @@ object ArangoClientJson:
           host = container.container.getHost.nn
         )
         httpClient <- ZIO.service[Client]
-        token <- arangoClientJson(newConfig, httpClient).login(newConfig.username, newConfig.password)
-      yield ZEnvironment(arangoClientJson(newConfig, httpClient, Some(token)), container)
+      yield ZEnvironment(arangoClientJson(newConfig, httpClient), container)
     )
