@@ -101,33 +101,32 @@ class ArangoCollection[Encoder[_], Decoder[_]](databaseName: DatabaseName, colle
 object ArangoCollection:
 
   extension [R, Enc[_], Dec[_]](colService: ZIO[R, ArangoError, ArangoCollection[Enc, Dec]])
-
     def create(setup: CollectionCreate => CollectionCreate = identity)(using
         Enc[CollectionCreate],
         Dec[CollectionInfo]
     ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
       colService.flatMap(_.create(setup))
 
-    def createIfNotExist(setup: CollectionCreate => CollectionCreate = identity)(using
-        Enc[CollectionCreate],
-        Dec[CollectionInfo]
-    ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
-      colService.flatMap(_.createIfNotExist(setup))
+  def createIfNotExist(setup: CollectionCreate => CollectionCreate = identity)(using
+      Enc[CollectionCreate],
+      Dec[CollectionInfo]
+  ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
+    colService.flatMap(_.createIfNotExist(setup))
 
-    def createEdge(setup: CollectionCreate => CollectionCreate = identity)(using
-        Enc[CollectionCreate],
-        Dec[CollectionInfo]
-    ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
-      colService.flatMap(_.createEdge(setup))
+  def createEdge(setup: CollectionCreate => CollectionCreate = identity)(using
+      Enc[CollectionCreate],
+      Dec[CollectionInfo]
+  ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
+    colService.flatMap(_.createEdge(setup))
 
-    def createEdgeIfNotExist(setup: CollectionCreate => CollectionCreate = identity)(using
-        Enc[CollectionCreate],
-        Dec[CollectionInfo]
-    ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
-      colService.flatMap(_.createEdgeIfNotExist(setup))
+  def createEdgeIfNotExist(setup: CollectionCreate => CollectionCreate = identity)(using
+      Enc[CollectionCreate],
+      Dec[CollectionInfo]
+  ): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
+    colService.flatMap(_.createEdgeIfNotExist(setup))
 
-    def drop(isSystem: Boolean = false)(using D: Dec[DeleteResult]): ZIO[R, ArangoError, DeleteResult] =
-      colService.flatMap(_.drop(isSystem))
+  def drop(isSystem: Boolean = false)(using D: Dec[DeleteResult]): ZIO[R, ArangoError, DeleteResult] =
+    colService.flatMap(_.drop(isSystem))
 
-    def documents: ZIO[R, ArangoError, ArangoDocuments[Enc, Dec]] =
-      colService.map(_.documents)
+  def documents: ZIO[R, ArangoError, ArangoDocuments[Enc, Dec]] =
+    colService.map(_.documents)

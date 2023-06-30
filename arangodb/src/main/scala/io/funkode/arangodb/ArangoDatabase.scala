@@ -75,23 +75,22 @@ def wal: ArangoWal[F]
 object ArangoDatabase:
 
   extension [R, Enc[_], Dec[_]](dbService: ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]])
-
     def create(users: List[DatabaseCreate.User] = List.empty)(using
         Enc[DatabaseCreate],
         Dec[ArangoResult[Boolean]]
     ): ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]] =
       dbService.flatMap(_.create(users))
 
-    def createIfNotExist(users: List[DatabaseCreate.User] = List.empty)(using
-        Enc[DatabaseCreate],
-        Dec[ArangoResult[Boolean]]
-    ): ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]] =
-      dbService.flatMap(_.createIfNotExist(users))
+  def createIfNotExist(users: List[DatabaseCreate.User] = List.empty)(using
+      Enc[DatabaseCreate],
+      Dec[ArangoResult[Boolean]]
+  ): ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]] =
+    dbService.flatMap(_.createIfNotExist(users))
 
-    def drop(using Dec[ArangoResult[Boolean]]): ZIO[R, ArangoError, Boolean] =
-      dbService.flatMap(_.drop)
+  def drop(using Dec[ArangoResult[Boolean]]): ZIO[R, ArangoError, Boolean] =
+    dbService.flatMap(_.drop)
 
-    def collection(collectionName: CollectionName): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
-      dbService.map(_.collection(collectionName))
+  def collection(collectionName: CollectionName): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
+    dbService.map(_.collection(collectionName))
 
-    def query(query: Query): ZIO[R, ArangoError, ArangoQuery[Enc, Dec]] = dbService.map(_.query(query))
+  def query(query: Query): ZIO[R, ArangoError, ArangoQuery[Enc, Dec]] = dbService.map(_.query(query))
