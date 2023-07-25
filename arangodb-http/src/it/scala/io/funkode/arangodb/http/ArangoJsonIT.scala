@@ -7,19 +7,21 @@
 package io.funkode.arangodb
 package http
 
+import java.nio.charset.Charset
+
 import zio.*
 import zio.http.Client
 import zio.json.*
 import zio.stream.*
 import zio.test.*
 import zio.test.Assertion.*
-
 import io.funkode.arangodb.http.Main.Rel
 import model.*
 import IndexGeoFields.*
 import protocol.*
 import ArangoMessage.*
 import io.funkode.velocypack.{VPack, VPackEncoder}
+import zio.json.ast.Json
 
 trait ArangoExamples:
 
@@ -368,17 +370,13 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           key = DocumentKey("tobby")
           document = createdCollection.document(key)
           beforeCount <- documents.count()
-          documentStream = ZStream.fromIterable("""
-              |{
+          documentStream = ZStream.fromIterable("""{
               |  "_key": "tobby",
               |  "name": "Petehar",
               |  "age": 12
-              |}""".stripMargin.getBytes())
-          createdParsed <- JsonDecoder[CreatedPet]
-            .decodeJsonStreamInput(
-              documents
-                .insertRaw(documentStream, true, true)
-            )
+              |}""".stripMargin.getBytes(Charset.forName("UTF-8")))
+          createdStream = documents.insertRaw(documentStream, true, true)
+          createdParsed <- JsonDecoder[CreatedPet].decodeJsonStreamInput(createdStream)
           // createdParsed <- JsonDecoder[CreatedPet].decodeJsonStreamInput(created)
           insertedCount <- documents.count()
           fetchedParsed <- JsonDecoder[PetWithKey].decodeJsonStreamInput(document.readRaw())

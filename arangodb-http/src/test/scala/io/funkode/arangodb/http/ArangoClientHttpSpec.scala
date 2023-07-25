@@ -8,7 +8,6 @@ package io.funkode.arangodb.http
 
 import zio.*
 import zio.http.*
-import zio.http.model.*
 import zio.json.{DeriveJsonCodec, JsonCodec}
 import zio.test.*
 import zio.test.Assertion.*
@@ -28,7 +27,7 @@ object ArangoClientHttpSpec extends ZIOSpecDefault:
   override def spec: Spec[TestEnvironment, Any] =
     suite("Arango http client should")(
       test("Correctly handle empty response from the server instead of the expected one") {
-        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _ =>
+        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _: Request =>
           ZIO.succeed(Response.ok)
         }
         val assertion = assertError(
@@ -42,7 +41,7 @@ object ArangoClientHttpSpec extends ZIOSpecDefault:
         errorTestCase(response, assertion)
       },
       test("Correctly handle error response from the server that matches ArangoError structure") {
-        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _ =>
+        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _: Request =>
           ZIO.succeed(
             Response(
               Status.BadRequest,
@@ -63,7 +62,7 @@ object ArangoClientHttpSpec extends ZIOSpecDefault:
         errorTestCase(response, assertion)
       },
       test("Correctly handle unexpected error response from the server instead of the expected one") {
-        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _ =>
+        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _: Request =>
           ZIO.succeed(Response(Status.Conflict, body = Body.fromString("{\"error\": true}")))
         }
         val assertion = assertError(
@@ -77,7 +76,7 @@ object ArangoClientHttpSpec extends ZIOSpecDefault:
         errorTestCase(response, assertion)
       },
       test("Correctly handle unexpected Json response from the server") {
-        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _ =>
+        val response: PartialFunction[Request, ZIO[Any, Throwable, Response]] = { case _: Request =>
           ZIO.succeed(Response.json("""{ "test": "value" }"""))
         }
         val assertion = assertError(
@@ -100,7 +99,7 @@ object ArangoClientHttpSpec extends ZIOSpecDefault:
       assertion: AIO[CollectionInfo] => UIO[TestResult]
   ): UIO[TestResult] =
     val authPartialFunction: PartialFunction[Request, ZIO[Any, Throwable, Response]] =
-      case request if request.url.encode.contains("auth") =>
+      case request: Request if request.url.encode.contains("auth") =>
         ZIO.succeed(Response.json("""{ "jwt": "eyJhbGciOiJIUzI1NiIx6EfI" }"""))
     val httpClientWithAuth =
       ZIO
