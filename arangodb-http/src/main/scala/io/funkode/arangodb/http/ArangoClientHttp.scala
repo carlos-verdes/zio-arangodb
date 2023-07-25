@@ -13,9 +13,6 @@ import io.lemonlabs.uri.*
 import io.netty.handler.codec.http.HttpHeaderNames
 import zio.*
 import zio.http.*
-import zio.http.model.*
-import zio.http.model.Headers.BearerSchemeName
-import zio.http.model.Status.*
 import zio.json.*
 import zio.json.ast.*
 import zio.prelude.*
@@ -67,9 +64,9 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
   import conversions.given
   import extensions.*
 
-  private val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
+  private val BaseUrl = URL(Root).withScheme(Scheme.HTTP).withHost(config.host).withPort(config.port)
 
-  private val headers = Headers(Headers.basicAuthorizationHeader(config.username, config.password))
+  private val headers = Headers(Header.Authorization.Basic(config.username, config.password))
 
   private lazy val _db = new ArangoDatabase[Encoder, Decoder](config.database)(using this)
 
@@ -95,8 +92,15 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
 
   def commandRaw[Encoder[_], Decoder[_]](message: ArangoMessage[ArangoStreamRaw]): ArangoStreamRaw =
     val header = message.header.emptyRequest(BaseUrl, headers)
-    val request: Request = header.copy(body = Body.fromStream(message.body))
+    // TODO check why body from stream fails with newer versions
+    // val request: Request = header.copy(body = Body.fromStream(message.body))
     for
+      bodyString <- ZStream.fromZIO:
+        for
+          bodyString <- message.body.runCollect.map(_.asString)
+          _ <- ZIO.logInfo(s"Body from stream: " + bodyString)
+        yield bodyString
+      request = header.copy(body = Body.fromString(bodyString))
       response <- ZStream.fromZIO(httpClient.request(request).handleErrors)
       parsedResponse <- parseResponseBodyRaw(response)
     yield parsedResponse
@@ -206,7 +210,7 @@ object conversions:
   given Conversion[Response, ArangoMessage.Header] = resp =>
     ArangoMessage.responseFinal(
       resp.status.code,
-      resp.headers.iterator.map(h => (h.key.toString, h.value.toString)).toMap
+      resp.headers.iterator.map(h => (h.headerName, h.renderedValue)).toMap
     )
 
   given Conversion[Vector[String], zio.http.Path] = parts =>
@@ -246,9 +250,9 @@ object extensions:
         userPassEncoder: Encoder[UserPassword]
     ) = header match
       case ArangoMessage.Header.Request(_, database, requestType, requestPath, parameters, meta) =>
-        val requestUrl = baseUrl.setPath(apiDatabasePrefixPath(database).addParts(requestPath.parts))
+        val requestUrl = baseUrl.withPath(apiDatabasePrefixPath(database).addParts(requestPath.parts))
         val headers: Headers = meta
-        requestHeader(headers ++ extraHeaders, requestType, requestUrl.setQueryParams(parameters))
+        requestHeader(headers ++ extraHeaders, requestType, requestUrl.withQueryParams(parameters))
 
       // support for async responses https://www.arangodb.com/docs/stable/http/async-results-management.html#managing-async-results-via-http
       case ArangoMessage.Header.Response(_, _, _, meta) =>
@@ -256,14 +260,14 @@ object extensions:
         requestHeader(
           headers ++ extraHeaders,
           Method.PUT,
-          baseUrl.setPath(asyncResponsePath(meta.get(ArangoAsyncId).getOrElse(EmptyString)))
+          baseUrl.withPath(asyncResponsePath(meta.get(ArangoAsyncId).getOrElse(EmptyString)))
         )
 
       case ArangoMessage.Header.Authentication(_, credentials) =>
         val body = credentials match
           case userPassword: UserPassword => httpEncoder.encode(userPassword)
           case token: Token               => httpEncoder.encode(token)
-        requestWithBody(body, Map.empty, Method.POST, baseUrl.setPath(LoginPath))
+        requestWithBody(body, Map.empty, Method.POST, baseUrl.withPath(LoginPath))
 
   extension [Encoder[_], T: Encoder](arangoMessage: ArangoMessage[T])
     def httpRequest(baseUrl: URL, extraHeaders: Headers = Headers.empty)(using
