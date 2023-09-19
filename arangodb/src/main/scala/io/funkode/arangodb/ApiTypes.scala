@@ -21,6 +21,7 @@ type WithClient[Encoder[_], Decoder[_], O] = ZIO[ArangoClient[Encoder, Decoder],
 type WithResource[R, O] = ZIO[R, ArangoError, O]
 
 val Api = "_api"
+val Begin = "begin"
 val Collection = "collection"
 val Cursor = "cursor"
 val Database = "database"
@@ -39,4 +40,5 @@ val ApiDocumentPath = AbsolutePath.fromParts(Api, DocumentString)
 val ApiIndexPath = AbsolutePath.fromParts(Api, Index)
 val ApiCursorPath = AbsolutePath.fromParts(Api, Cursor)
 val ApiTransactionPath = AbsolutePath.fromParts(Api, TransactionString)
+val ApiBeginTransactionPath = AbsolutePath.fromParts(Api, TransactionString).addPart(Begin)
 val ApiGharialPath = AbsolutePath.fromParts(Api, Gharial)

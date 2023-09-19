@@ -40,6 +40,9 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
   def graph(graphName: GraphName): ArangoGraph[Encoder, Decoder] =
     new ArangoGraph[Encoder, Decoder](db.name, graphName)(using this)
 
+  def transactions: ArangoTransactions[Encoder, Decoder] =
+    new ArangoTransactions[Encoder, Decoder](db.name)(using this)
+
   def getBody[O: Decoder](header: ArangoMessage.Header): AIO[O] = get(header).map(_.body)
   def getBodyRaw(header: ArangoMessage.Header): ArangoStreamRaw = getRaw(header)
 

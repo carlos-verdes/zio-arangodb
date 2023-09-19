@@ -31,6 +31,7 @@ type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
 type ArangoCollectionJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type ArangoDocumentsJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type ArangoGraphJson = ArangoGraph[JsonEncoder, JsonDecoder]
+type ArangoTransactionsJson = ArangoTransactions[JsonEncoder, JsonDecoder]
 type WithJsonClient[O] = WithClient[JsonEncoder, JsonDecoder, O]
 
 type ArangoClientSchema = ArangoClient[Schema, Schema]
@@ -96,9 +97,7 @@ class ArangoClientHttp[Encoder[_], Decoder[_]](
     // val request: Request = header.copy(body = Body.fromStream(message.body))
     for
       bodyString <- ZStream.fromZIO:
-        for
-          bodyString <- message.body.runCollect.map(_.asString)
-          _ <- ZIO.logInfo(s"Body from stream: " + bodyString)
+        for bodyString <- message.body.runCollect.map(_.asString)
         yield bodyString
       request = header.copy(body = Body.fromString(bodyString))
       response <- ZStream.fromZIO(httpClient.request(request).handleErrors)
@@ -407,6 +406,9 @@ object ArangoClientJson:
 
   def graph(graphName: GraphName): WithJsonClient[ArangoGraphJson] =
     withClient(_.graph(graphName))
+
+  def transactions: WithJsonClient[ArangoTransactionsJson] =
+    withClient(_.transactions)
 
   val jsonEncoderForHttp: HttpEncoder[JsonEncoder] = new HttpEncoder[JsonEncoder]:
     override def encode[R](r: R)(using E: JsonEncoder[R]) =
