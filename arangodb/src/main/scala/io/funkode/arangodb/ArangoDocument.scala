@@ -9,7 +9,6 @@ package io.funkode.arangodb
 import zio.stream.*
 
 import io.funkode.velocypack.{VPack, VPackEncoder}
-import io.funkode.velocypack.VPack.VObject
 import model.*
 import protocol.*
 import ArangoMessage.*

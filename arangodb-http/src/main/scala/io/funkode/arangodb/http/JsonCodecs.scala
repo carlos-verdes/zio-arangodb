@@ -67,6 +67,10 @@ object JsonCodecs:
   given JsonCodec[Query.Options] = DeriveJsonCodec.gen[Query.Options]
   given JsonEncoder[Query] = DeriveJsonEncoder.gen[Query]
   given JsonCodec[ServerVersion] = DeriveJsonCodec.gen[ServerVersion]
+  given JsonCodec[Transaction] = DeriveJsonCodec.gen[Transaction]
+  given JsonCodec[TransactionCreate] = DeriveJsonCodec.gen[TransactionCreate]
+  given JsonCodec[TransactionCreateCollections] = DeriveJsonCodec.gen[TransactionCreateCollections]
+
   given JsonCodec[Token] = DeriveJsonCodec.gen[Token]
   given JsonCodec[UserPassword] = DeriveJsonCodec.gen[UserPassword]
 

@@ -53,6 +53,7 @@ trait ArangoExamples:
   val randomCollection = CollectionName("someRandomCol")
   val petsCollection = CollectionName("pets")
   val pets2Collection = CollectionName("pets2")
+  val pets3Collection = CollectionName("pets3")
   val streamCollection = CollectionName("stream-test")
 
   val someIndexName = IndexName("someIndex")
@@ -61,6 +62,10 @@ trait ArangoExamples:
   val pet2 = Pet("cat", 3)
   val pet3 = Pet("hamster", 4)
   val pet4 = Pet("fish", 5)
+  val pet5 = Pet("turtle", 6)
+  val pet5WithKey = PetWithKey(DocumentKey("turtle:6"), "turtle", 6)
+  val pet6 = Pet("rabbit", 7)
+  val pet6WithKey = PetWithKey(DocumentKey("rabbit:7"), "rabbit", 7)
 
   val petWithKey = PetWithKey(DocumentKey("123"), "turtle", 23)
   val patchPetWithKey = PatchAge(DocumentKey("123"), 24)
@@ -160,7 +165,7 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
       },
       test("Save documents in a collection") {
         for
-          documents <- ArangoClientJson.collection(petsCollection).create().documents
+          documents <- ArangoClientJson.collection(petsCollection).createIfNotExist().documents
           inserted1 <- documents.insert(pet1, true, true)
           inserted2 <- documents.insert(pet2, true, true)
           insertedCount <- documents.count()
@@ -183,6 +188,47 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(deletedDocs.length == 1) &&
           assertTrue(deletedDocs.head._key == inserted1._key) &&
           assertTrue(countAfterDelete == 3L)
+      },
+      test("Create transaction and commit") {
+        for
+          createdCollection <- ArangoClientJson.collection(pets3Collection).createIfNotExist()
+          documents = createdCollection.documents
+          transactions <- ArangoClientJson.transactions
+          tx <- transactions.begin(
+            write = List(pets3Collection),
+            read = List(pets3Collection),
+            waitForSync = true
+          )
+          inserted1 <- documents.insert(
+            document = pet5WithKey,
+            waitForSync = true,
+            returnNew = true,
+            transaction = Some(tx.id)
+          )
+          notFound1 <- createdCollection.document(pet5WithKey._key).head().flip
+          inserted2 <- documents.insert(
+            document = pet6WithKey,
+            waitForSync = true,
+            returnNew = true,
+            transaction = Some(tx.id)
+          )
+          notFound2 <- createdCollection.document(pet6WithKey._key).head().flip
+          _ <- tx.commit
+          found1 <- createdCollection.document(pet5WithKey._key).read[Pet]()
+          found2 <- createdCollection.document(pet6WithKey._key).read[Pet]()
+          _ <- ArangoClientJson.collection(pets3Collection).drop()
+        yield assertTrue(inserted1.`new`.contains(pet5WithKey)) &&
+          assertTrue(inserted2.`new`.contains(pet6WithKey)) &&
+          assertTrue(notFound1 match
+            case ArangoError(404, _, _, _) => true
+            case _                         => false
+          ) &&
+          assertTrue(notFound2 match
+            case ArangoError(404, _, _, _) => true
+            case _                         => false
+          ) &&
+          assertTrue(found1 == pet5) &&
+          assertTrue(found2 == pet6)
       },
       test("Save single document in a collection") {
         for
