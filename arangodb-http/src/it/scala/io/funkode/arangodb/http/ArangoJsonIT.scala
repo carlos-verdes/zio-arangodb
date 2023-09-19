@@ -368,6 +368,12 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
             List(customersCollection),
             List(carsCollection)
           )
+          _ <- graph.replaceEdgeCollection(
+            customerRelsEdgeCollection,
+            List(customersCollection),
+            List(carsCollection, customersCollection)
+          )
+
           cars = graph.vertex(carsCollection)
           customers = graph.vertex(customersCollection)
           customerRels = graph.edge(customerRelsEdgeCollection)
