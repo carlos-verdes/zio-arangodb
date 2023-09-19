@@ -154,7 +154,7 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
   import VObject.updated
   import VPackEncoder.given
 
-  def upsert(obj: VObject)(using
+  def upsert(obj: VObject, transaction: Option[TransactionId] = None)(using
       Encoder[Query],
       Decoder[QueryResults[VObject]]
   ): AIO[VObject] =
@@ -171,5 +171,6 @@ class ArangoDocument[Encoder[_], Decoder[_]](databaseName: DatabaseName, documen
       Query(
         queryString,
         obj.updated("@collection", handle.collection.unwrap).updated("_key", handle.key.unwrap)
-      )
+      ),
+      options = ArangoQuery.Options(transaction = transaction)
     ).execute[VObject].map(_.result.head)
