@@ -90,6 +90,16 @@ class ArangoGraph[Encoder[_], Decoder[_]](database: DatabaseName, graphName: Gra
       .execute[ArangoResponse[GraphInfo.Response], Encoder, Decoder]
       .map(_.result.graph)
 
+  def replaceEdgeCollection(
+      collection: CollectionName,
+      from: List[CollectionName],
+      to: List[CollectionName]
+  )(using Encoder[GraphEdgeDefinition], Decoder[ArangoResponse[GraphInfo.Response]]): AIO[GraphInfo] =
+    PUT(database, edgePath.addPart(collection.unwrap))
+      .withBody(GraphEdgeDefinition(collection, from, to))
+      .execute[ArangoResponse[GraphInfo.Response], Encoder, Decoder]
+      .map(_.result.graph)
+
   def removeEdgeCollection(
       collection: CollectionName,
       dropCollections: Boolean = false
