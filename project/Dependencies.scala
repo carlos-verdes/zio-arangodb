@@ -4,21 +4,21 @@ object Dependencies {
 
   object Versions {
 
-    val zioV = "2.0.15"
+    val zioV = "2.0.17"
     val zioConfigV = "3.0.2"
     val zioHttpV = "3.0.0-RC2"
     val zioLoggingV = "2.1.0"
-    val zioJsonV = "0.6.0"
+    val zioJsonV = "0.6.2"
     val zioConfMagnoliaV = "3.0.7"
     val zioConfTypesafeV = "3.0.7"
     val zioCryptoV = "0.0.1"
-    val zioPreludeV = "1.0.0-RC19"
-    val zioSchemaV = "0.4.13"
+    val zioPreludeV = "1.0.0-RC21"
+    val zioSchemaV = "0.4.14"
 
-    val logBackV = "1.4.8"
+    val logBackV = "1.4.11"
     val scalaUriV = "4.0.3"
     val scodecV = "2.2.1"
-    val testContainersV = "0.40.17"
+    val testContainersV = "0.41.0"
     val jansiV = "2.4.0"
   }
 
