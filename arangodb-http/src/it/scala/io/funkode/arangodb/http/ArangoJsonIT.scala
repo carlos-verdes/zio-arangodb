@@ -35,6 +35,7 @@ trait ArangoExamples:
   case class PetWithKey(_key: DocumentKey, name: String, age: Int)
   case class CreatedPet(`new`: PetWithKey)
   case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle)
+  case class Edge(_key: DocumentKey, _rel: String, _from: DocumentHandle, _to: DocumentHandle)
   case class Car(_key: String, make: String, model: String)
   case class Customer(_key: String, name: String)
 
@@ -44,6 +45,7 @@ trait ArangoExamples:
   given JsonCodec[PetWithKey] = DeriveJsonCodec.gen[PetWithKey]
   given JsonCodec[CreatedPet] = DeriveJsonCodec.gen[CreatedPet]
   given JsonCodec[Rel] = DeriveJsonCodec.gen[Rel]
+  given JsonCodec[Edge] = DeriveJsonCodec.gen[Edge]
   given JsonCodec[Car] = DeriveJsonCodec.gen[Car]
   given JsonCodec[Customer] = DeriveJsonCodec.gen[Customer]
 
@@ -102,7 +104,12 @@ trait ArangoExamples:
   val es = DocumentHandle(countries, DocumentKey("ES"))
   val fr = DocumentHandle(countries, DocumentKey("FR"))
   val us = DocumentHandle(countries, DocumentKey("US"))
-  val alliesOfEs = List(Rel("ally", es, fr), Rel("ally", es, us), Rel("ally", us, fr))
+  def alliesOfEs =
+    List(
+      Edge(DocumentKey("es-ally-fr"), "ally", es, fr),
+      Edge(DocumentKey("es-ally-us"), "ally", es, us),
+      Edge(DocumentKey("us-ally-fr"), "ally", us, fr)
+    )
   val expectedAllies =
     List(Country("\uD83C\uDDEB\uD83C\uDDF7", "France"), Country("\uD83C\uDDFA\uD83C\uDDF8", "United States"))
 
@@ -352,10 +359,15 @@ object ArangoJsonIT extends ZIOSpecDefault with ArangoExamples:
               )
           resultQuery <- queryAlliesOfSpain.execute[Country].map(_.result)
           vertexCollections <- graph.vertexCollections
+          _ <- graph
+            .edgeInstance(DocumentHandle(allies, alliesOfEs.head._key))
+            .remove[Country](returnOld = true)
+          resultQueryAfterUnlink <- queryAlliesOfSpain.execute[Country].map(_.result)
         yield assertTrue(graphCreated.name == politics) &&
           assertTrue(graphCreated.edgeDefinitions == graphEdgeDefinitions) &&
           assertTrue(resultQuery.sortBy(_.name) == expectedAllies.sortBy(_.name)) &&
-          assert(vertexCollections)(hasSameElements(List(countries)))
+          assert(vertexCollections)(hasSameElements(List(countries))) &&
+          assertTrue(resultQueryAfterUnlink.sortBy(_.name) == expectedAllies.tail.sortBy(_.name))
       },
       test("Delete edge when vertex document is deleted") {
         for
