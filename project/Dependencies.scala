@@ -19,7 +19,7 @@ object Dependencies {
     val scalaUriV = "4.0.3"
     val scodecV = "2.2.1"
     val testContainersV = "0.41.0"
-    val jansiV = "2.4.0"
+    val jansiV = "2.4.1"
   }
 
   object Libraries {
