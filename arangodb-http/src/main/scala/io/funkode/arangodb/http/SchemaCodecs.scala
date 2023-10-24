@@ -56,12 +56,17 @@ object SchemaCodecs:
       O
     ], QueryResults[O]](
       TypeId.parse("io.funkode.arangodb.model.QueryResults"),
-      Schema.Field("cached", Schema[Boolean], get0 = _.cached, (r, v) => r.copy(cached = v)),
-      Schema.Field("count", Schema[Option[Long]], get0 = _.count, (r, v) => r.copy(count = v)),
-      Schema.Field("extra", Schema[Option[QueryResults.Extra]], get0 = _.extra, (r, v) => r.copy(extra = v)),
-      Schema.Field("hasMore", Schema[Boolean], get0 = _.hasMore, (r, v) => r.copy(hasMore = v)),
-      Schema.Field("id", Schema[Option[String]], get0 = _.id, (r, v) => r.copy(id = v)),
-      Schema.Field("result", Schema[List[O]], get0 = _.result, (r, v) => r.copy(result = v)),
+      Schema.Field("cached", Schema[Boolean], get0 = _.cached, set0 = (r, v) => r.copy(cached = v)),
+      Schema.Field("count", Schema[Option[Long]], get0 = _.count, set0 = (r, v) => r.copy(count = v)),
+      Schema.Field(
+        "extra",
+        Schema[Option[QueryResults.Extra]],
+        get0 = _.extra,
+        set0 = (r, v) => r.copy(extra = v)
+      ),
+      Schema.Field("hasMore", Schema[Boolean], get0 = _.hasMore, set0 = (r, v) => r.copy(hasMore = v)),
+      Schema.Field("id", Schema[Option[String]], get0 = _.id, set0 = (r, v) => r.copy(id = v)),
+      Schema.Field("result", Schema[List[O]], get0 = _.result, set0 = (r, v) => r.copy(result = v)),
       (
           cached: Boolean,
           count: Option[Long],
