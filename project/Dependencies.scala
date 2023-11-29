@@ -15,7 +15,7 @@ object Dependencies {
     val zioPreludeV = "1.0.0-RC21"
     val zioSchemaV = "0.4.14"
 
-    val logBackV = "1.4.11"
+    val logBackV = "1.4.13"
     val scalaUriV = "4.0.3"
     val scodecV = "2.2.1"
     val testContainersV = "0.41.0"
