@@ -4,7 +4,7 @@ object Dependencies {
 
   object Versions {
 
-    val zioV = "2.0.17"
+    val zioV = "2.0.22"
     val zioConfigV = "3.0.2"
     val zioHttpV = "3.0.0-RC2"
     val zioLoggingV = "2.1.0"
